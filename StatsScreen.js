@@ -4,7 +4,7 @@ import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTheme } from './useTheme';
-import { useBets } from './useBets';
+import { useStore, useStats } from './store';
 import Chart from './Chart';
 import Heatmap from './Heatmap';
 import StatsCard from './StatsCard';
@@ -19,7 +19,10 @@ const TABS = ['Overview', 'Insights', 'Odds', 'Heatmap', 'Tags', '🏆 Badges'];
 
 export default function StatsScreen() {
   const { colors } = useTheme();
-  const { bets, bookies, sports, stats } = useBets();
+  const bets = useStore(s => s.bets);
+  const bookies = useStore(s => s.bookies);
+  const sports = useStore(s => s.sports);
+  const stats = useStats();
   const [activeTab, setActiveTab] = useState('Overview');
   const [hidden] = useState(false);
   const [currency] = useState('INR');

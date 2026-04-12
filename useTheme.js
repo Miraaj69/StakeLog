@@ -9,10 +9,9 @@ const ThemeContext = createContext(null);
 export function ThemeProvider({ children }) {
   const systemScheme = useColorScheme();
   const [themeKey, setThemeKey] = useState('auto');
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    getItem(KEYS.THEME, 'auto').then(t => { setThemeKey(t); setLoaded(true); });
+    getItem(KEYS.THEME, 'auto').then(t => setThemeKey(t));
   }, []);
 
   const setTheme = async (key) => {
@@ -27,14 +26,14 @@ export function ThemeProvider({ children }) {
   const colors = isDark ? {
     ...Colors,
     ...Colors.dark,
-    background: isAmoled ? '#000000' : Colors.dark.background,
+    background: isAmoled ? '#000' : Colors.dark.background,
     surface: isAmoled ? '#0D0D0D' : Colors.dark.surface,
     surfaceVariant: isAmoled ? '#161618' : Colors.dark.surfaceVariant,
     surfaceElevated: isAmoled ? '#1A1A1C' : Colors.dark.surfaceElevated,
   } : { ...Colors };
 
   return (
-    <ThemeContext.Provider value={{ colors, isDark, themeKey, setTheme, loaded }}>
+    <ThemeContext.Provider value={{ colors, isDark, themeKey, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from './useTheme';
-import { useBets } from './useBets';
+import { useStore, useStats } from './store';
 import { CURRENCIES, DEFAULT_BOOKIES, DEFAULT_SPORTS, formatMoney } from './calculations';
 import { getItem, setItem, KEYS } from './storage';
 import { Spacing, Radius, Typography, Shadows } from './theme';
@@ -48,7 +48,16 @@ function Divider({ colors }) {
 
 export default function SettingsScreen() {
   const { colors, themeKey, setTheme } = useTheme();
-  const { bets, bookies, sports, templates, stats, saveBookies, saveSports, clearAllBets, deleteTemplate } = useBets();
+  const bets = useStore(s => s.bets);
+  const bookies = useStore(s => s.bookies);
+  const sports = useStore(s => s.sports);
+  const templates = useStore(s => s.templates);
+  const saveBookies = useStore(s => s.saveBookies);
+  const saveSports = useStore(s => s.saveSports);
+  const clearAllBets = useStore(s => s.clearAllBets);
+  const deleteTemplate = useStore(s => s.deleteTemplate);
+  const setTheme = useStore(s => s.setTheme);
+  const stats = useStats();
   const [currency, setCurrencyState] = useState('INR');
   const [pinEnabled, setPinEnabled] = useState(false);
   const [savedPin, setSavedPin] = useState('');

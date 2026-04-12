@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from './useTheme';
-import { useBets } from './useBets';
+import { useStore, useStats } from './store';
 import BetCard from './BetCard';
 import AddBetModal from './AddBetModal';
 import {
@@ -26,7 +26,21 @@ const SORT_OPTIONS = [
 
 export default function BetsScreen() {
   const { colors } = useTheme();
-  const { bets, bookies, sports, bankrollStart, templates, stats, addBet, updateBet, deleteBet, markStatus, duplicateBet, bulkAction, undo, undoStack, saveTemplate } = useBets();
+  const bets = useStore(s => s.bets);
+  const bookies = useStore(s => s.bookies);
+  const sports = useStore(s => s.sports);
+  const bankrollStart = useStore(s => s.bankrollStart);
+  const templates = useStore(s => s.templates);
+  const undoStack = useStore(s => s.undoStack);
+  const addBet = useStore(s => s.addBet);
+  const updateBet = useStore(s => s.updateBet);
+  const deleteBet = useStore(s => s.deleteBet);
+  const markStatus = useStore(s => s.markStatus);
+  const duplicateBet = useStore(s => s.duplicateBet);
+  const bulkAction = useStore(s => s.bulkAction);
+  const undo = useStore(s => s.undo);
+  const saveTemplate = useStore(s => s.saveTemplate);
+  const stats = useStats();
   const [modalVisible, setModalVisible] = useState(false);
   const [editBet, setEditBet] = useState(null);
   const [search, setSearch] = useState('');
