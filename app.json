@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Stake Log",
+    "slug": "stakelog",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#E50914"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.stakelog.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E50914"
+      },
+      "package": "com.stakelog.app",
+      "softwareKeyboardLayoutMode": "pan"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d3258db2-4cd5-44c9-854c-61ea3037e360"
+      }
+    },
+    "owner": "YOUR_EXPO_USERNAME"
+  }
+}
