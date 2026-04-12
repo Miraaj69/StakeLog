@@ -14,6 +14,7 @@ import AddBetModal from './AddBetModal';
 import {
   STATUSES, formatMoney, calcSuggestedStake, calcTotalPnL, getCurrencySymbol, makeForm,
 } from './calculations';
+import FloatingMenu from './FloatingMenu';
 import { Spacing, Radius, Typography, Shadows, Colors } from './theme';
 
 const SORT_OPTIONS = [
@@ -96,6 +97,81 @@ export default function BetsScreen() {
   const handleLost = async (id) => { await markStatus(id, 'Lost'); };
   const toggleSelect = (id) => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const handleBulkAction = async (action) => { await bulkAction(Array.from(selected), action); setSelected(new Set()); setBulkMode(false); };
+
+  const pendingBets = bets.filter(b => b.status === 'Pending');
+  const hasPendingBets = pendingBets.length > 0;
+
+  const handleFabAction = (id) => {
+    if (id === 'add') {
+      setEditBet(null);
+      setModalVisible(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else if (id === 'won') {
+      if (pendingBets.length === 1) {
+        handleWon(pendingBets[0].id);
+      } else if (pendingBets.length > 1) {
+        Alert.alert(
+          'Mark as Won',
+          'Which pending bet won?',
+          [
+            ...pendingBets.slice(0, 5).map(b => ({
+              text: b.event.substring(0, 40),
+              onPress: () => handleWon(b.id),
+            })),
+            { text: 'Cancel', style: 'cancel' },
+          ]
+        );
+      } else {
+        Alert.alert('No Pending Bets', 'Add a bet first and mark it as pending.');
+      }
+    } else if (id === 'lost') {
+      if (pendingBets.length === 1) {
+        handleLost(pendingBets[0].id);
+      } else if (pendingBets.length > 1) {
+        Alert.alert(
+          'Mark as Lost',
+          'Which pending bet lost?',
+          [
+            ...pendingBets.slice(0, 5).map(b => ({
+              text: b.event.substring(0, 40),
+              onPress: () => handleLost(b.id),
+            })),
+            { text: 'Cancel', style: 'cancel' },
+          ]
+        );
+      }
+    } else if (id === 'quick') {
+      const lastBet = bets[0];
+      if (lastBet) {
+        duplicateBet(lastBet);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert('Duplicated ✓', 'Last bet duplicated as Pending.');
+      } else {
+        Alert.alert('No Bets', 'Add a bet first to duplicate it.');
+      }
+    } else if (id === 'stats') {
+      const today = new Date().toDateString();
+      const todayBets = bets.filter(b => new Date(b.date).toDateString() === today);
+      const todayPnL = todayBets.reduce((sum, b) => {
+        if (b.status === 'Won') return sum + parseFloat(b.stake) * (parseFloat(b.odds) - 1);
+        if (b.status === 'Lost') return sum - parseFloat(b.stake);
+        return sum;
+      }, 0);
+      const todayWon = todayBets.filter(b => b.status === 'Won').length;
+      const todayLost = todayBets.filter(b => b.status === 'Lost').length;
+      Alert.alert(
+        "📊 Today's Summary",
+        todayBets.length === 0
+          ? 'No bets placed today yet.'
+          : [
+              "Bets: " + todayBets.length,
+              "Won: " + todayWon + "  Lost: " + todayLost,
+              "P&L: " + (todayPnL >= 0 ? '+' : '') + currSym + Math.abs(todayPnL).toFixed(0),
+            ].join('\n'),
+        [{ text: 'OK' }]
+      );
+    }
+  };
 
   const s = styles(colors);
 
@@ -233,11 +309,12 @@ export default function BetsScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* FAB */}
-      <Pressable onPress={() => { setEditBet(null); setModalVisible(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }}
-        style={[s.fab, { backgroundColor: colors.primary, ...Shadows.primary }]}>
-        <Text style={s.fabText}>+ New Bet</Text>
-      </Pressable>
+
+
+      <FloatingMenu
+        onAction={handleFabAction}
+        hasPendingBets={hasPendingBets}
+      />
 
       <AddBetModal
         visible={modalVisible}
