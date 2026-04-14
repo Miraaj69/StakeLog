@@ -74,7 +74,7 @@ export default function StatsScreen() {
         {/* OVERVIEW */}
         {activeTab === 'Overview' && (
           <View style={{ gap: Spacing.md }}>
-            <View style={s.statsGrid}>
+            <View style={[s.statsGrid, { flexWrap: 'wrap' }]}>
               {[
                 { icon: '📈', label: 'Net P&L', value: hidden ? `${currSym}••••` : (stats.totalPnL >= 0 ? '+' : '') + formatMoney(stats.totalPnL, currSym), color: stats.totalPnL >= 0 ? colors.profit : colors.loss, bgColor: stats.totalPnL >= 0 ? colors.profitContainer : colors.lossContainer },
                 { icon: '💰', label: 'Total Staked', value: hidden ? `${currSym}••••` : formatMoney(stats.totalStake, currSym), bgColor: colors.surface },

@@ -142,7 +142,7 @@ var st = StyleSheet.create({
   },
   wrap: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 32 : 24,
+    bottom: Platform.OS === 'ios' ? 92 : 82,
     right: 20,
     alignItems: 'center',
     zIndex: 99,

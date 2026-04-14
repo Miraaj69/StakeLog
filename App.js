@@ -166,9 +166,9 @@ function CustomTabBar({ state, navigation }) {
         return (
           <Pressable key={route.name} onPress={onPress} style={tabS.tab}>
             <Animated.View style={[tabS.inner, animStyle]}>
-              <Text style={[tabS.emoji, { opacity: focused ? 1 : 0.45 }]}>{TABS[idx].emoji}</Text>
+              <Text style={[tabS.emoji, { opacity: focused ? 1 : 0.55 }]}>{TABS[idx].emoji}</Text>
               <Text style={[tabS.label, {
-                color: focused ? '#E50914' : colors.textTertiary,
+                color: focused ? '#E50914' : '#9CA3AF',
                 fontWeight: focused ? '700' : '500',
               }]}>
                 {TABS[idx].label}
@@ -185,10 +185,16 @@ function CustomTabBar({ state, navigation }) {
 const tabS = StyleSheet.create({
   bar: { flexDirection:'row', paddingTop:8, paddingBottom: Platform.OS==='ios' ? 24 : 10, borderTopWidth:0.5 },
   tab: { flex:1, alignItems:'center' },
-  inner: { alignItems:'center', gap:3 },
-  emoji: { fontSize:20 },
+  inner: { alignItems:'center', gap:2 },
+  emoji: { fontSize:22 },
   label: { fontSize:10, letterSpacing:0.1 },
-  indicator: { width:16, height:3, borderRadius:2, backgroundColor:'#E50914', marginTop:2 },
+  indicator: { width:16, height:3, borderRadius:2, backgroundColor:'#E50914', marginTop:1 },
+  activeGlow: {
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+  },
 });
 
 function GlobalFAB({ currentTab }) {

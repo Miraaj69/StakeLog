@@ -8,7 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from './useTheme';
 import { useStore, useStats } from './store';
 import Chart from './Chart';
-import { formatMoney, calcBankrollSeries, calcPnLTimeSeries, getCurrencySymbol } from './calculations';
+import { formatMoney, formatMoneyCompact, calcBankrollSeries, calcPnLTimeSeries, getCurrencySymbol } from './calculations';
 
 export default function BankrollScreen() {
   const { colors } = useTheme();
