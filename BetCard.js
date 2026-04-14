@@ -1,227 +1,212 @@
-// BetCard.js — Premium redesign with proper swipe actions
+// BetCard.js — Premium hierarchy: title > numbers > meta
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
-import Animated, {
-  useSharedValue, useAnimatedStyle, withSpring, withTiming,
-  runOnJS, useAnimatedGestureHandler, interpolate, Extrapolation,
-} from 'react-native-reanimated';
+import {
+  View, Text, StyleSheet, Pressable, Alert,
+  Animated as RNAnimated,
+} from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue, useAnimatedStyle, useAnimatedGestureHandler,
+  withSpring, withTiming, interpolate, Extrapolation, runOnJS,
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from './useTheme';
 import { formatMoney } from './calculations';
 
-const SWIPE_THRESHOLD = 75;
-const MAX_SWIPE = 110;
-
 function calcPnL(bet) {
-  if (bet.status === 'Won') return parseFloat(bet.stake) * (parseFloat(bet.odds) - 1);
+  if (bet.status === 'Won')  return parseFloat(bet.stake) * (parseFloat(bet.odds) - 1);
   if (bet.status === 'Lost') return -parseFloat(bet.stake);
   return 0;
 }
 
-function StatusBadge({ status, colors }) {
-  const cfg = {
-    Won:     { bg: '#E8F8EE', color: '#1A9E4A', label: '✓  Won' },
-    Lost:    { bg: '#FDECEA', color: '#D93025', label: '✕  Lost' },
-    Pending: { bg: '#FFF8E7', color: '#E07B00', label: '◷  Pending' },
-    Void:    { bg: '#F5F5F5', color: '#888',    label: '—  Void' },
-  }[status] || { bg: '#F5F5F5', color: '#888', label: status };
-  return (
-    <View style={[bs.badge, { backgroundColor: cfg.bg }]}>
-      <Text style={[bs.text, { color: cfg.color }]}>{cfg.label}</Text>
-    </View>
-  );
-}
-const bs = StyleSheet.create({
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  text: { fontSize: 11, fontWeight: '700', letterSpacing: 0.2 },
-});
+var STATUS_CFG = {
+  Won:     { bg: '#E8F8EE', border: '#A7DFB9', color: '#1A9E4A', dot: '#1A9E4A', label: '✓  Won' },
+  Lost:    { bg: '#FDECEA', border: '#F5B8B2', color: '#D93025', dot: '#D93025', label: '✕  Lost' },
+  Pending: { bg: '#FFF8E7', border: '#FFD980', color: '#E07B00', dot: '#E07B00', label: '◷  Pending' },
+  Void:    { bg: '#F5F5F5', border: '#DDD',    color: '#888',    dot: '#CCC',    label: '—  Void' },
+};
 
-export default function BetCard({
-  bet, onEdit, onDelete, onWon, onLost, onDuplicate,
-  hidden, currSym = '₹', bulkMode, selected, onSelect,
-}) {
-  const { colors } = useTheme();
-  const [expanded, setExpanded] = useState(false);
-  const translateX = useSharedValue(0);
-  const cardOpacity = useSharedValue(1);
-  const cardScale = useSharedValue(1);
+var SWIPE_THRESHOLD = 72;
+var MAX_SWIPE = 105;
 
-  const pnl = calcPnL(bet);
-  const isPending = bet.status === 'Pending';
+export default function BetCard({ bet, onEdit, onDelete, onWon, onLost, onDuplicate, hidden, currSym, bulkMode, selected, onSelect }) {
+  currSym = currSym || '₹';
+  var { colors } = useTheme();
+  var [expanded, setExpanded] = useState(false);
 
-  const leftColor  = '#1A9E4A'; // won — swipe right
-  const rightColor = '#D93025'; // delete — swipe left
+  var pnl = calcPnL(bet);
+  var isPending = bet.status === 'Pending';
+  var cfg = STATUS_CFG[bet.status] || STATUS_CFG.Void;
 
-  const gestureHandler = useAnimatedGestureHandler({
-    onStart: (_, ctx) => { ctx.startX = translateX.value; },
-    onActive: (e, ctx) => {
-      const nx = ctx.startX + e.translationX;
-      if (nx < 0) translateX.value = Math.max(nx, -MAX_SWIPE);
-      else if (isPending) translateX.value = Math.min(nx, MAX_SWIPE);
+  // Swipe
+  var tx = useSharedValue(0);
+  var cardOp = useSharedValue(1);
+
+  var gesture = useAnimatedGestureHandler({
+    onStart: function(_, ctx) { ctx.sx = tx.value; },
+    onActive: function(e, ctx) {
+      var nx = ctx.sx + e.translationX;
+      if (nx < 0) tx.value = Math.max(nx, -MAX_SWIPE);
+      else if (isPending) tx.value = Math.min(nx, MAX_SWIPE);
     },
-    onEnd: () => {
-      if (translateX.value < -SWIPE_THRESHOLD) {
+    onEnd: function() {
+      if (tx.value < -SWIPE_THRESHOLD) {
         runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
-        cardOpacity.value = withTiming(0, { duration: 220 });
-        cardScale.value = withTiming(0.92, { duration: 220 });
-        translateX.value = withTiming(-MAX_SWIPE, { duration: 180 });
+        cardOp.value = withTiming(0, { duration: 200 });
+        tx.value = withTiming(-MAX_SWIPE, { duration: 180 });
         runOnJS(onDelete)(bet.id);
-      } else if (translateX.value > SWIPE_THRESHOLD && isPending) {
+      } else if (tx.value > SWIPE_THRESHOLD && isPending) {
         runOnJS(Haptics.notificationAsync)(Haptics.NotificationFeedbackType.Success);
         runOnJS(onWon)(bet.id);
-        translateX.value = withSpring(0, { damping: 18 });
+        tx.value = withSpring(0, { damping: 18 });
       } else {
-        translateX.value = withSpring(0, { damping: 18 });
+        tx.value = withSpring(0, { damping: 18 });
       }
     },
   });
 
-  const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }, { scale: cardScale.value }],
-    opacity: cardOpacity.value,
-  }));
-
-  // Swipe background reveal
-  const rightReveal = useAnimatedStyle(() => ({
-    opacity: interpolate(translateX.value, [-MAX_SWIPE, -30], [1, 0], Extrapolation.CLAMP),
-    transform: [{ scale: interpolate(translateX.value, [-MAX_SWIPE, -30], [1, 0.85], Extrapolation.CLAMP) }],
-  }));
-  const leftReveal = useAnimatedStyle(() => ({
-    opacity: interpolate(translateX.value, [30, MAX_SWIPE], [0, 1], Extrapolation.CLAMP),
-    transform: [{ scale: interpolate(translateX.value, [30, MAX_SWIPE], [0.85, 1], Extrapolation.CLAMP) }],
-  }));
-
-  const statusBarColor = {
-    Won: '#1A9E4A', Lost: '#D93025', Pending: '#E07B00', Void: '#BDBDBD',
-  }[bet.status] || '#BDBDBD';
+  var cardStyle = useAnimatedStyle(function() {
+    return { transform: [{ translateX: tx.value }], opacity: cardOp.value };
+  });
+  var rightReveal = useAnimatedStyle(function() {
+    return { opacity: interpolate(tx.value, [-MAX_SWIPE, -20], [1, 0], Extrapolation.CLAMP) };
+  });
+  var leftReveal = useAnimatedStyle(function() {
+    return { opacity: interpolate(tx.value, [20, MAX_SWIPE], [0, 1], Extrapolation.CLAMP) };
+  });
 
   return (
-    <View style={s.wrap}>
-      {/* ── Swipe BG: Delete (right bg, swipe left) ── */}
-      <Animated.View style={[s.swipeBg, s.swipeBgRight, { backgroundColor: rightColor }, rightReveal]}>
-        <Text style={s.swipeEmoji}>🗑</Text>
-        <Text style={s.swipeLabel}>Delete</Text>
+    <View style={st.wrap}>
+      {/* Swipe bg — delete (left) */}
+      <Animated.View style={[st.swipeBg, st.swipeBgRight, rightReveal]}>
+        <Text style={st.swipeIcon}>🗑</Text>
+        <Text style={st.swipeLbl}>Delete</Text>
       </Animated.View>
-
-      {/* ── Swipe BG: Won (left bg, swipe right) ── */}
+      {/* Swipe bg — won (right) */}
       {isPending && (
-        <Animated.View style={[s.swipeBg, s.swipeBgLeft, { backgroundColor: leftColor }, leftReveal]}>
-          <Text style={s.swipeEmoji}>✓</Text>
-          <Text style={s.swipeLabel}>Won</Text>
+        <Animated.View style={[st.swipeBg, st.swipeBgLeft, leftReveal]}>
+          <Text style={st.swipeIcon}>✓</Text>
+          <Text style={st.swipeLbl}>Won</Text>
         </Animated.View>
       )}
 
-      <PanGestureHandler onGestureEvent={gestureHandler} activeOffsetX={[-10, 10]}>
-        <Animated.View style={[s.card, { backgroundColor: colors.surface }, cardStyle]}>
-          {/* Status color bar on left */}
-          <View style={[s.colorBar, { backgroundColor: statusBarColor }]} />
+      <PanGestureHandler onGestureEvent={gesture} activeOffsetX={[-10, 10]}>
+        <Animated.View style={[st.card, { backgroundColor: colors.surface, borderColor: colors.border }, cardStyle]}>
+          {/* Left accent bar */}
+          <View style={[st.accentBar, { backgroundColor: cfg.dot }]} />
 
-          <View style={s.body}>
-            {/* Row 1: Event + Status */}
-            <View style={s.row1}>
-              <View style={s.eventWrap}>
+          <View style={st.body}>
+            {/* ── Row 1: Event + Status (BIGGEST) ── */}
+            <View style={st.row1}>
+              <View style={st.titleWrap}>
                 {bulkMode && (
                   <Pressable onPress={() => onSelect(bet.id)}
-                    style={[s.checkbox, { borderColor: selected ? colors.primary : '#D1D5DB', backgroundColor: selected ? colors.primary : 'transparent' }]}>
+                    style={[st.checkbox, { borderColor: selected ? '#E50914' : colors.border, backgroundColor: selected ? '#E50914' : 'transparent' }]}>
                     {selected && <Text style={{ color: '#fff', fontSize: 9, fontWeight: '900' }}>✓</Text>}
                   </Pressable>
                 )}
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.event, { color: colors.textPrimary }]} numberOfLines={1}>{bet.event}</Text>
-                  <Text style={[s.betName, { color: colors.textTertiary }]} numberOfLines={1}>↳ {bet.bet}</Text>
+                  {/* TITLE — biggest element */}
+                  <Text style={[st.event, { color: colors.textPrimary }]} numberOfLines={2}>{bet.event}</Text>
+                  {/* Bet description — secondary */}
+                  <Text style={[st.betDesc, { color: colors.textTertiary }]} numberOfLines={1}>↳ {bet.bet}</Text>
                 </View>
               </View>
-              <StatusBadge status={bet.status} colors={colors} />
+              <View style={[st.statusBadge, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
+                <Text style={[st.statusTxt, { color: cfg.color }]}>{cfg.label}</Text>
+              </View>
             </View>
 
-            {/* Row 2: Tags */}
-            <View style={s.tagsRow}>
-              {[bet.bookie, bet.sport, bet.date].filter(Boolean).map(t => (
-                <View key={t} style={[s.tag, { backgroundColor: colors.surfaceVariant }]}>
-                  <Text style={[s.tagTxt, { color: colors.textTertiary }]}>{t}</Text>
-                </View>
-              ))}
-              {(bet.tags || []).map(tag => (
-                <View key={tag} style={[s.tag, { backgroundColor: '#EEF2FF' }]}>
-                  <Text style={[s.tagTxt, { color: '#4F46E5' }]}>#{tag}</Text>
-                </View>
-              ))}
-            </View>
-
-            {/* Row 3: Numbers */}
-            <View style={[s.numRow, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
-              <View style={s.numItem}>
-                <Text style={[s.numLbl, { color: colors.textTertiary }]}>STAKE</Text>
-                <Text style={[s.numVal, { color: colors.textPrimary }]}>
+            {/* ── Row 2: Numbers (MOST IMPORTANT data) ── */}
+            <View style={[st.numRow, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
+              <View style={st.numItem}>
+                <Text style={[st.numLbl, { color: colors.textTertiary }]}>STAKE</Text>
+                <Text style={[st.numVal, { color: colors.textPrimary }]}>
                   {hidden ? '••••' : formatMoney(parseFloat(bet.stake || 0), currSym)}
                 </Text>
               </View>
-              <View style={[s.numDiv, { backgroundColor: colors.border }]} />
-              <View style={s.numItem}>
-                <Text style={[s.numLbl, { color: colors.textTertiary }]}>ODDS</Text>
-                <Text style={[s.numVal, { color: colors.textPrimary }]}>{parseFloat(bet.odds || 0).toFixed(2)}×</Text>
+              <View style={[st.numDiv, { backgroundColor: colors.border }]} />
+              <View style={st.numItem}>
+                <Text style={[st.numLbl, { color: colors.textTertiary }]}>ODDS</Text>
+                <Text style={[st.numVal, { color: colors.textPrimary }]}>{parseFloat(bet.odds || 0).toFixed(2)}×</Text>
               </View>
-              <View style={[s.numDiv, { backgroundColor: colors.border }]} />
-              <View style={s.numItem}>
+              <View style={[st.numDiv, { backgroundColor: colors.border }]} />
+              <View style={st.numItem}>
                 {isPending ? (
                   <>
-                    <Text style={[s.numLbl, { color: colors.textTertiary }]}>TO WIN</Text>
-                    <Text style={[s.numVal, { color: '#1A9E4A' }]}>
-                      {hidden ? '••••' : formatMoney(parseFloat(bet.stake || 0) * (parseFloat(bet.odds || 1) - 1), currSym)}
+                    <Text style={[st.numLbl, { color: colors.textTertiary }]}>TO WIN</Text>
+                    <Text style={[st.numVal, { color: '#1A9E4A', fontWeight: '800' }]}>
+                      {hidden ? '••' : formatMoney(parseFloat(bet.stake || 0) * (parseFloat(bet.odds || 1) - 1), currSym)}
                     </Text>
                   </>
                 ) : (
                   <>
-                    <Text style={[s.numLbl, { color: colors.textTertiary }]}>P&L</Text>
-                    <Text style={[s.pnl, { color: pnl >= 0 ? '#1A9E4A' : '#D93025' }]}>
-                      {hidden ? '••••' : (pnl >= 0 ? '+' : '') + formatMoney(pnl, currSym)}
+                    <Text style={[st.numLbl, { color: colors.textTertiary }]}>P&L</Text>
+                    <Text style={[st.pnl, { color: pnl >= 0 ? '#1A9E4A' : '#D93025' }]}>
+                      {hidden ? '••' : (pnl >= 0 ? '+' : '') + formatMoney(pnl, currSym)}
                     </Text>
                   </>
                 )}
               </View>
             </View>
 
+            {/* ── Row 3: Meta tags (SMALLEST) ── */}
+            <View style={st.metaRow}>
+              {[bet.bookie, bet.sport, bet.date].filter(Boolean).map(function(t) {
+                return (
+                  <View key={t} style={[st.metaTag, { backgroundColor: colors.surfaceVariant }]}>
+                    <Text style={[st.metaTxt, { color: colors.textTertiary }]}>{t}</Text>
+                  </View>
+                );
+              })}
+              {(bet.tags || []).map(function(tag) {
+                return (
+                  <View key={tag} style={[st.metaTag, { backgroundColor: 'rgba(229,9,20,0.08)' }]}>
+                    <Text style={[st.metaTxt, { color: '#E50914' }]}>#{tag}</Text>
+                  </View>
+                );
+              })}
+            </View>
+
             {/* Expanded notes */}
             {expanded && bet.notes ? (
-              <View style={[s.notes, { borderTopColor: colors.border }]}>
-                <Text style={[s.notesTxt, { color: colors.textSecondary }]}>📝 {bet.notes}</Text>
+              <View style={[st.notes, { borderTopColor: colors.border }]}>
+                <Text style={[st.notesTxt, { color: colors.textSecondary }]}>📝 {bet.notes}</Text>
               </View>
             ) : null}
 
-            {/* Row 4: Actions */}
+            {/* ── Action row — minimal ── */}
             {!bulkMode && (
-              <View style={s.actions}>
+              <View style={st.actions}>
                 {isPending && (
                   <>
-                    <Pressable
-                      onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onWon(bet.id); }}
-                      style={[s.actionBtn, { backgroundColor: '#E8F8EE', flex: 1 }]}>
-                      <Text style={[s.actionTxt, { color: '#1A9E4A' }]}>✓  Won</Text>
+                    <Pressable onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onWon(bet.id); }}
+                      style={[st.actionBtn, { backgroundColor: '#E8F8EE', flex: 1 }]}>
+                      <Text style={{ color: '#1A9E4A', fontWeight: '700', fontSize: 13 }}>✓  Won</Text>
                     </Pressable>
-                    <Pressable
-                      onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onLost(bet.id); }}
-                      style={[s.actionBtn, { backgroundColor: '#FDECEA', flex: 1 }]}>
-                      <Text style={[s.actionTxt, { color: '#D93025' }]}>✕  Lost</Text>
+                    <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onLost(bet.id); }}
+                      style={[st.actionBtn, { backgroundColor: '#FDECEA', flex: 1 }]}>
+                      <Text style={{ color: '#D93025', fontWeight: '700', fontSize: 13 }}>✕  Lost</Text>
                     </Pressable>
                   </>
                 )}
-                <Pressable onPress={() => setExpanded(e => !e)} style={[s.iconBtn, { backgroundColor: colors.surfaceVariant }]}>
-                  <Text style={{ fontSize: 11, color: colors.textTertiary }}>{expanded ? '▲' : '▼'}</Text>
+                {/* Minimal icon buttons */}
+                <Pressable onPress={() => setExpanded(function(e) { return !e; })} style={[st.iconBtn, { backgroundColor: colors.surfaceVariant }]}>
+                  <Text style={{ fontSize: 10, color: colors.textTertiary }}>{expanded ? '▲' : '▼'}</Text>
                 </Pressable>
-                <Pressable onPress={() => onEdit(bet)} style={[s.iconBtn, { backgroundColor: colors.surfaceVariant }]}>
-                  <Text style={{ fontSize: 14 }}>✏️</Text>
+                <Pressable onPress={() => onEdit(bet)} style={[st.iconBtn, { backgroundColor: colors.surfaceVariant }]}>
+                  <Text style={{ fontSize: 13 }}>✏️</Text>
                 </Pressable>
-                <Pressable onPress={() => onDuplicate(bet)} style={[s.iconBtn, { backgroundColor: colors.surfaceVariant }]}>
-                  <Text style={{ fontSize: 14 }}>⎘</Text>
+                <Pressable onPress={() => onDuplicate(bet)} style={[st.iconBtn, { backgroundColor: colors.surfaceVariant }]}>
+                  <Text style={{ fontSize: 13 }}>⎘</Text>
                 </Pressable>
                 <Pressable
                   onPress={() => Alert.alert('Delete Bet', 'This cannot be undone.', [
                     { text: 'Cancel', style: 'cancel' },
                     { text: 'Delete', style: 'destructive', onPress: () => onDelete(bet.id) },
                   ])}
-                  style={[s.iconBtn, { backgroundColor: '#FDECEA' }]}>
-                  <Text style={{ fontSize: 14, color: '#D93025' }}>🗑</Text>
+                  style={[st.iconBtn, { backgroundColor: '#FDECEA' }]}>
+                  <Text style={{ fontSize: 13, color: '#D93025' }}>🗑</Text>
                 </Pressable>
               </View>
             )}
@@ -232,48 +217,46 @@ export default function BetCard({
   );
 }
 
-const s = StyleSheet.create({
+var st = StyleSheet.create({
   wrap: { marginBottom: 10, position: 'relative' },
-  swipeBg: {
-    position: 'absolute', top: 0, bottom: 0,
-    borderRadius: 20, alignItems: 'center', justifyContent: 'center',
-    flexDirection: 'column', gap: 3,
-    width: 90,
-  },
-  swipeBgRight: { right: 0 },
-  swipeBgLeft: { left: 0 },
-  swipeEmoji: { fontSize: 22, color: '#fff' },
-  swipeLabel: { fontSize: 11, color: '#fff', fontWeight: '700', letterSpacing: 0.3 },
+  swipeBg: { position: 'absolute', top: 0, bottom: 0, width: 90, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  swipeBgRight: { right: 0, backgroundColor: '#D93025' },
+  swipeBgLeft:  { left:  0, backgroundColor: '#1A9E4A' },
+  swipeIcon: { fontSize: 20, color: '#fff', fontWeight: '700' },
+  swipeLbl:  { fontSize: 10, color: '#fff', fontWeight: '700', marginTop: 2 },
   card: {
-    borderRadius: 20,
-    flexDirection: 'row',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    borderRadius: 20, flexDirection: 'row', overflow: 'hidden', borderWidth: 0.5,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 3,
   },
-  colorBar: { width: 4, flexShrink: 0 },
-  body: { flex: 1, padding: 14 },
-  row1: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 10 },
-  eventWrap: { flex: 1, flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
-  event: { fontSize: 14, fontWeight: '700', letterSpacing: -0.2, lineHeight: 20, marginBottom: 2 },
-  betName: { fontSize: 12, fontWeight: '500', lineHeight: 17 },
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 10 },
-  tag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  tagTxt: { fontSize: 10, fontWeight: '600' },
-  numRow: { flexDirection: 'row', borderRadius: 12, borderWidth: 0.5, overflow: 'hidden', marginBottom: 10 },
+  accentBar: { width: 4, flexShrink: 0 },
+  body:      { flex: 1, padding: 14 },
+
+  // Row 1 — title hierarchy
+  row1:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
+  titleWrap:   { flex: 1, flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+  checkbox:    { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginTop: 2, flexShrink: 0 },
+  event:       { fontSize: 15, fontWeight: '700', letterSpacing: -0.3, lineHeight: 21, marginBottom: 3 },
+  betDesc:     { fontSize: 12, fontWeight: '500', lineHeight: 17 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 0.5, flexShrink: 0 },
+  statusTxt:   { fontSize: 11, fontWeight: '700' },
+
+  // Row 2 — numbers
+  numRow:  { flexDirection: 'row', borderRadius: 12, borderWidth: 0.5, overflow: 'hidden', marginBottom: 10 },
   numItem: { flex: 1, paddingVertical: 10, alignItems: 'center' },
-  numDiv: { width: 0.5 },
-  numLbl: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 },
-  numVal: { fontSize: 14, fontWeight: '700', letterSpacing: -0.3 },
-  pnl: { fontSize: 16, fontWeight: '800', letterSpacing: -0.5 },
-  notes: { borderTopWidth: 0.5, paddingTop: 10, marginBottom: 6 },
+  numDiv:  { width: 0.5 },
+  numLbl:  { fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 },
+  numVal:  { fontSize: 14, fontWeight: '700', letterSpacing: -0.3 },
+  pnl:     { fontSize: 16, fontWeight: '900', letterSpacing: -0.5 },
+
+  // Row 3 — meta (smallest)
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 10 },
+  metaTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7 },
+  metaTxt: { fontSize: 10, fontWeight: '600' },
+
+  notes:    { borderTopWidth: 0.5, paddingTop: 10, marginBottom: 6 },
   notesTxt: { fontSize: 12, lineHeight: 18, fontStyle: 'italic' },
-  actions: { flexDirection: 'row', gap: 7, alignItems: 'center' },
-  actionBtn: { borderRadius: 999, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
-  actionTxt: { fontSize: 12, fontWeight: '700' },
-  iconBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+
+  actions:   { flexDirection: 'row', gap: 7, alignItems: 'center' },
+  actionBtn: { borderRadius: 999, paddingVertical: 9, alignItems: 'center', justifyContent: 'center' },
+  iconBtn:   { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
 });

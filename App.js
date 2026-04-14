@@ -1,7 +1,7 @@
 // App.js
 import 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, StatusBar, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, StatusBar, Platform, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ import { getItem, setItem, KEYS, migrateIfNeeded } from './storage';
 import HomeScreen from './HomeScreen';
 import FloatingMenu from './FloatingMenu';
 import AddBetModal from './AddBetModal';
+import { ToastProvider } from './Toast';
 import BetsScreen from './BetsScreen';
 import StatsScreen from './StatsScreen';
 import BankrollScreen from './BankrollScreen';
@@ -340,7 +341,9 @@ function App() {
     <GestureHandlerRootView style={{ flex:1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <AppContent />
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
