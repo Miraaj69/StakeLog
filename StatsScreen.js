@@ -45,10 +45,11 @@ var sc = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
+    overflow: 'hidden',
   },
-  icon:  { fontSize: 18, marginBottom: 4 },
-  value: { fontSize: 15, fontWeight: '800', letterSpacing: -0.3, textAlign: 'center' },
-  label: { fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 3, textAlign: 'center' },
+  icon:  { fontSize: 16, marginBottom: 3 },
+  value: { fontSize: 13, fontWeight: '800', letterSpacing: -0.2, textAlign: 'center', width: '100%' },
+  label: { fontSize: 9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3, marginTop: 2, textAlign: 'center', width: '100%' },
 });
 
 export default function StatsScreen() {
@@ -313,9 +314,9 @@ var s = StyleSheet.create({
   pageTitle: { fontSize: 22, fontWeight: '700' },
 
   tabScroll: { flexGrow: 0, maxHeight: 54 },
-  tabRow:    { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' },
-  tab:       { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, marginRight: 10, borderWidth: 0.5 },
-  tabTxt:    { fontSize: 14, fontWeight: '600', flexShrink: 1 },
+  tabRow:    { paddingLeft: 16, paddingRight: 8, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' },
+  tab:       { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, marginRight: 8, borderWidth: 0.5 },
+  tabTxt:    { fontSize: 13, fontWeight: '600', flexShrink: 1 },
 
   content:   { padding: 16 },
 
