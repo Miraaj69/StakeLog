@@ -97,13 +97,13 @@ export default function StatsScreen() {
       </View>
 
       {/* Tab bar — horizontal scroll, no cut-off */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabScroll} contentContainerStyle={s.tabRow}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabScroll} contentContainerStyle={[s.tabRow]}>
         {TABS.map(function(tab) {
           var active = activeTab === tab;
           return (
             <Pressable key={tab} onPress={() => setActiveTab(tab)}
               style={[s.tab, { backgroundColor: active ? '#E50914' : colors.surfaceVariant, borderColor: active ? '#E50914' : colors.border }]}>
-              <Text style={[s.tabTxt, { color: active ? '#fff' : '#9CA3AF', fontWeight: active ? '700' : '500' }]}>{tab}</Text>
+              <Text style={[s.tabTxt, { color: active ? '#fff' : '#9CA3AF', fontWeight: active ? '700' : '500' }]} numberOfLines={1} adjustsFontSizeToFit>{tab}</Text>
             </Pressable>
           );
         })}
@@ -312,10 +312,10 @@ var s = StyleSheet.create({
   topBar:    { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 0.5 },
   pageTitle: { fontSize: 22, fontWeight: '700' },
 
-  tabScroll: { flexGrow: 0, maxHeight: 52 },
-  tabRow:    { paddingHorizontal: 16, paddingVertical: 8, gap: 8, flexDirection: 'row', alignItems: 'center' },
-  tab:       { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 999, borderWidth: 0.5 },
-  tabTxt:    { fontSize: 13 },
+  tabScroll: { flexGrow: 0, maxHeight: 54 },
+  tabRow:    { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' },
+  tab:       { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, marginRight: 10, borderWidth: 0.5 },
+  tabTxt:    { fontSize: 14, fontWeight: '600', flexShrink: 1 },
 
   content:   { padding: 16 },
 

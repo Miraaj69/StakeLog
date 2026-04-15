@@ -142,8 +142,8 @@ var st = StyleSheet.create({
   },
   wrap: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 92 : 82,
-    right: 20,
+    bottom: 110,
+    right: 28,
     alignItems: 'center',
     zIndex: 99,
   },
@@ -152,8 +152,8 @@ var st = StyleSheet.create({
     backgroundColor: '#E50914',
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#E50914',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.42, shadowRadius: 14, elevation: 12,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6, shadowRadius: 20, elevation: 15,
   },
   fabIcon: { fontSize: 25, color: '#fff', lineHeight: 29 },
   pulse: {
