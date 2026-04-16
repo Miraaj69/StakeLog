@@ -12,6 +12,7 @@ import {
   calcOddsBreakdown, calcTagStats, calcSmartInsights, calcPnLByDay,
   getCurrencySymbol, ACHIEVEMENTS,
 } from './calculations';
+const SCREEN_W = Dimensions.get('window').width;
 
 var SCREEN_W = Dimensions.get('window').width;
 var TABS = ['Overview', 'Insights', 'Odds', 'Heatmap', 'Tags', 'Badges'];
