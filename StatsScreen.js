@@ -12,6 +12,7 @@ import {
   calcOddsBreakdown, calcTagStats, calcSmartInsights, calcPnLByDay,
   getCurrencySymbol, ACHIEVEMENTS,
 } from './calculations';
+import Animated, { useSharedValue, useAnimatedStyle,withTiming,interpolate,} from 'react-native-reanimated';
 const SCREEN_W = Dimensions.get('window').width;
 
 var SCREEN_W = Dimensions.get('window').width;
@@ -62,7 +63,12 @@ export default function StatsScreen() {
   var stats   = useStats();
   var currSym = getCurrencySymbol(currency);
 
-  var [activeTab, setActiveTab] = useState('Overview');
+  const tabs = ['Overview', 'Insights', 'Odds', 'Heatmap', 'Tags', 'Badges'];
+
+const [activeTab, setActiveTab] = useState('Overview');
+
+const activeIndex = useSharedValue(0);
+const contentOpacity = useSharedValue(1);
 
   var pnlData      = useMemo(function() { return calcPnLTimeSeries(bets); }, [bets]);
   var sportStats   = useMemo(function() { return calcSportStats(bets, sports); }, [bets, sports]);
