@@ -23,6 +23,10 @@ import BetsScreen from './BetsScreen';
 import StatsScreen from './StatsScreen';
 import BankrollScreen from './BankrollScreen';
 import SettingsScreen from './SettingsScreen';
+import { Text } from 'react-native';
+
+Text.defaultProps = Text.defaultProps || {};
+Text.defaultProps.allowFontScaling = false;
 
 const Tab = createBottomTabNavigator();
 
