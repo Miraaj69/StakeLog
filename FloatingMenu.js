@@ -143,7 +143,7 @@ var st = StyleSheet.create({
   wrap: {
     position: 'absolute',
     bottom: 110,
-    right: 28,
+    left: 24,
     alignItems: 'center',
     zIndex: 99,
   },
