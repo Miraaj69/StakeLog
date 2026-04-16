@@ -12,11 +12,33 @@ import {
   calcOddsBreakdown, calcTagStats, calcSmartInsights, calcPnLByDay,
   getCurrencySymbol, ACHIEVEMENTS,
 } from './calculations';
-import Animated, { useSharedValue, useAnimatedStyle,withTiming,interpolate,} from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  useAnimatedGestureHandler,
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
+import { PanGestureHandler } from 'react-native-gesture-handler';
 const SCREEN_W = Dimensions.get('window').width;
 
 var SCREEN_W = Dimensions.get('window').width;
 var TABS = ['Overview', 'Insights', 'Odds', 'Heatmap', 'Tags', 'Badges'];
+const gestureHandler = useAnimatedGestureHandler({
+  onActive: (event) => {
+    translateX.value = event.translationX;
+  },
+  onEnd: (event) => {
+    if (event.translationX < -50 && activeIndex.value < tabs.length - 1) {
+      activeIndex.value += 1;
+    } else if (event.translationX > 50 && activeIndex.value > 0) {
+      activeIndex.value -= 1;
+    }
+
+    translateX.value = withTiming(0);
+
+    runOnJS(setActiveTab)(tabs[Math.round(activeIndex.value)]);
+  },
+});
 
 // Equal-size stat card
 function StatCard({ icon, value, label, color, bg, border, colors }) {
