@@ -21,7 +21,7 @@ function StatCard({ icon, value, label, color, bg, border, colors }) {
   return (
     <View style={[sc.card, { backgroundColor: bg || colors.surface, borderColor: border || colors.border }]}>
       {icon ? <Text style={sc.icon}>{icon}</Text> : null}
-      <Text style={[sc.value, { color: color || colors.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
+      <Text style={[sc.value, { color: color || colors.textPrimary }]} numberOfLines={1} ellipsizeMode="tail"
         {value}
       </Text>
       <Text style={[sc.label, { color: colors.textTertiary }]} numberOfLines={1}>
@@ -32,7 +32,7 @@ function StatCard({ icon, value, label, color, bg, border, colors }) {
 }
 var sc = StyleSheet.create({
   card: {
-    width: '23%',
+    width: (SCREEN_W - 32 - 12) / 4,
     aspectRatio: 1,
     borderRadius: 18,
     alignItems: 'center',
@@ -202,6 +202,7 @@ export default function StatsScreen() {
         {activeTab === 'Insights' && (
           <View style={{ gap: 10 }}>
             <Text style={[s.tabDesc, { color: colors.textTertiary }]}>Generated from your betting patterns</Text>
+            <View style={{minHeight: 80, justifyContent: 'center', borderRadius: 16,}}>
             {insights.map(function(ins, i) {
               var cfg = {
                 positive: { bg: 'rgba(26,158,74,0.1)',  border: 'rgba(26,158,74,0.25)',  color: '#1A9E4A' },
@@ -223,6 +224,7 @@ export default function StatsScreen() {
         {activeTab === 'Odds' && (
           <Animated.View entering={FadeInDown.springify()} style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[s.cardTitle, { color: colors.textPrimary }]}>Win Rate by Odds Range</Text>
+            <View style={{width: '100%', maxWidth: 420,  alignSelf: 'center'}}>
             {oddsBreakdown.map(function(r) {
               var c = r.winRate >= 55 ? '#1A9E4A' : r.winRate >= 40 ? '#E07B00' : '#D93025';
               return (
@@ -314,9 +316,9 @@ var s = StyleSheet.create({
   pageTitle: { fontSize: 22, fontWeight: '700' },
 
   tabScroll: { flexGrow: 0, maxHeight: 54 },
-  tabRow:    { paddingLeft: 16, paddingRight: 8, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' },
-  tab:       { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, marginRight: 8, borderWidth: 0.5 },
-  tabTxt:    { fontSize: 13, fontWeight: '600', flexShrink: 1 },
+  tabRow:    { paddingLeft: 16, paddingRight: 10, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' },
+  tab:       {  height: 36, paddingHorizontal: 14, justifyContent: 'center', alignItems: 'center', borderRadius: 20,},
+  tabTxt:    { fontSize: 13, lineHeight: 16, fontWeight: '600'},
 
   content:   { padding: 16 },
 
