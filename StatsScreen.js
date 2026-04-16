@@ -355,7 +355,7 @@ var s = StyleSheet.create({
   tagBadge:  { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start' },
 
   badgesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  badge:      { width: '47%', borderRadius: 20, padding: 16, alignItems: 'center', borderWidth: 0.5 },
+  badge:      { width: (SCREEN_W - 48) / 2, borderRadius: 20, padding: 16, alignItems: 'center', borderWidth: 0.5 },
   badgeTitle: { fontSize: 13, fontWeight: '800', textAlign: 'center', marginBottom: 2 },
   badgeDesc:  { fontSize: 11, textAlign: 'center' },
   badgeCheck: { fontSize: 9, fontWeight: '800', marginTop: 4, color: '#E50914', letterSpacing: 1 },
