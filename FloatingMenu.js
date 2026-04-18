@@ -156,8 +156,8 @@ export default function FloatingMenu({ onAction, hasPendingBets, isProfit, total
   var actions = buildActions(hasPendingBets, isProfit);
 
   // FAB color — green glow if profit, red if loss
-  var fabBg    = isProfit ? '#1A9E4A' : '#E50914';
-  var fabGlow  = isProfit ? '#1A9E4A' : '#E50914';
+  var fabBg    = '#7C6BFF';
+  var fabGlow  = '#7C6BFF';
 
   // Pulse when closed
   useEffect(function() {
@@ -250,7 +250,7 @@ export default function FloatingMenu({ onAction, hasPendingBets, isProfit, total
             style={[
               st.fab,
               {
-                backgroundColor: fabBg,
+                backgroundColor: '#7C6BFF',
                 shadowColor: fabGlow,
                 transform: [{ rotate: rotate }, { scale: fabScale }],
               },
@@ -263,7 +263,7 @@ export default function FloatingMenu({ onAction, hasPendingBets, isProfit, total
                 style={[
                   st.pulse,
                   {
-                    backgroundColor: fabBg,
+                    backgroundColor: '#7C6BFF',
                     transform: [{ scale: pulseAnim }],
                     opacity: pulseOpacity,
                   },

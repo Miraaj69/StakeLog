@@ -94,7 +94,7 @@ const lm = StyleSheet.create({
   closeBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
   addRow: { flexDirection: 'row', alignItems: 'center', margin: 16, borderRadius: 14, borderWidth: 0.5, paddingHorizontal: 14, height: 52 },
   input: { flex: 1, fontSize: 16, fontWeight: '500' },
-  addBtn: { backgroundColor: '#E50914', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8 },
+  addBtn: { backgroundColor: '#7C6BFF', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8 },
   addBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 14 },
   item: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 0.5 },
   itemTxt: { flex: 1, fontSize: 15, fontWeight: '500' },
@@ -161,8 +161,8 @@ function PinSetupModal({ visible, onClose, onSave, colors }) {
           <View style={pm.dotsRow}>
             {[0,1,2,3].map(i => (
               <View key={i} style={[pm.dot, {
-                borderColor: digits.length > i ? '#E50914' : colors.border,
-                backgroundColor: digits.length > i ? '#E50914' : 'transparent',
+                borderColor: digits.length > i ? '#7C6BFF' : colors.border,
+                backgroundColor: digits.length > i ? '#7C6BFF' : 'transparent',
               }]} />
             ))}
           </View>
@@ -174,9 +174,9 @@ function PinSetupModal({ visible, onClose, onSave, colors }) {
               <Pressable key={i} onPress={() => k && press(k)} disabled={!k}
                 style={({ pressed }) => [
                   pm.key,
-                  { backgroundColor: !k ? 'transparent' : pressed ? '#FFE8E8' : colors.surface, borderColor: colors.border, borderWidth: !k ? 0 : 0.5, opacity: !k ? 0 : 1 }
+                  { backgroundColor: !k ? 'transparent' : pressed ? 'rgba(124,107,255,0.12)' : colors.surface, borderColor: colors.border, borderWidth: !k ? 0 : 0.5, opacity: !k ? 0 : 1 }
                 ]}>
-                <Text style={[pm.keyTxt, { color: k === '⌫' ? '#E50914' : colors.textPrimary }]}>{k}</Text>
+                <Text style={[pm.keyTxt, { color: k === '⌫' ? '#7C6BFF' : colors.textPrimary }]}>{k}</Text>
               </Pressable>
             ))}
           </View>
@@ -408,9 +408,9 @@ export default function SettingsScreen() {
                 <Pressable key={c.code}
                   onPress={() => { setCurrency(c.code); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
                   style={[s.chip, currency === c.code
-                    ? { backgroundColor: '#FFE8E8', borderColor: '#E50914' }
+                    ? { backgroundColor: 'rgba(124,107,255,0.12)', borderColor: '#7C6BFF' }
                     : { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
-                  <Text style={[s.chipTxt, { color: currency === c.code ? '#E50914' : colors.textSecondary }]}>
+                  <Text style={[s.chipTxt, { color: currency === c.code ? '#7C6BFF' : colors.textSecondary }]}>
                     {c.symbol} {c.code}
                   </Text>
                 </Pressable>
@@ -446,7 +446,7 @@ export default function SettingsScreen() {
                 <Switch
                   value={pinEnabled}
                   onValueChange={handlePinToggle}
-                  trackColor={{ false: colors.border, true: '#E50914' }}
+                  trackColor={{ false: colors.border, true: '#7C6BFF' }}
                   thumbColor="#fff"
                 />
               }
@@ -459,7 +459,7 @@ export default function SettingsScreen() {
                 <Switch
                   value={hiddenMode}
                   onValueChange={handleHiddenToggle}
-                  trackColor={{ false: colors.border, true: '#E50914' }}
+                  trackColor={{ false: colors.border, true: '#7C6BFF' }}
                   thumbColor="#fff"
                 />
               }
@@ -544,7 +544,7 @@ const s = StyleSheet.create({
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 0.5 },
   title: { fontSize: 22, fontWeight: '700' },
   sub: { fontSize: 12, fontWeight: '500' },
-  checkCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#E50914', alignItems: 'center', justifyContent: 'center' },
+  checkCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#7C6BFF', alignItems: 'center', justifyContent: 'center' },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1 },
   chipTxt: { fontSize: 13, fontWeight: '700' },
   summaryCard: { borderRadius: 20, padding: 16, marginBottom: 14, borderWidth: 0.5 },

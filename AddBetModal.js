@@ -99,8 +99,8 @@ function Chips({ label, options, value, onSelect, colors }) {
             var active = value===v;
             return (
               <Pressable key={v} onPress={() => { onSelect(v); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
-                style={[ch.chip, { backgroundColor:active?'#FFE8E8':colors.surfaceVariant, borderColor:active?'#E50914':colors.border }]}>
-                <Text style={[ch.txt, { color:active?'#E50914':colors.textSecondary, fontWeight:active?'700':'500' }]}>{v}</Text>
+                style={[ch.chip, { backgroundColor:active?'rgba(124,107,255,0.12)':colors.surfaceVariant, borderColor:active?'#7C6BFF':colors.border }]}>
+                <Text style={[ch.txt, { color:active?'#7C6BFF':colors.textSecondary, fontWeight:active?'700':'500' }]}>{v}</Text>
               </Pressable>
             );
           })}
@@ -309,8 +309,8 @@ export default function AddBetModal({ visible, onClose, onSave, editBet, bookies
                                 var active = form.bet===bt.label;
                                 return (
                                   <Pressable key={bt.label} onPress={() => selectBetType(bt.label)}
-                                    style={[ch.chip, { backgroundColor:active?'#FFE8E8':colors.surfaceVariant, borderColor:active?'#E50914':colors.border }]}>
-                                    <Text style={[ch.txt, { color:active?'#E50914':colors.textSecondary, fontWeight:active?'700':'500' }]}>{bt.label}</Text>
+                                    style={[ch.chip, { backgroundColor:active?'rgba(124,107,255,0.12)':colors.surfaceVariant, borderColor:active?'#7C6BFF':colors.border }]}>
+                                    <Text style={[ch.txt, { color:active?'#7C6BFF':colors.textSecondary, fontWeight:active?'700':'500' }]}>{bt.label}</Text>
                                   </Pressable>
                                 );
                               })}
