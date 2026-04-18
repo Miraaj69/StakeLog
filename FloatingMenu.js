@@ -1,4 +1,4 @@
-// FloatingMenu.js — 4 actions, RN Animated (no Reanimated crash)
+// FloatingMenu.js — Premium radial FAB, Reanimated-safe
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Platform,
@@ -6,59 +6,194 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-// 4 focused actions only
-var ACTIONS = [
-  { id: 'add',   icon: '＋', label: 'Add New Bet',  sub: 'Log a bet',         bg: '#E50914' },
-  { id: 'won',   icon: '✓',  label: 'Mark as Won',  sub: 'Pending bet won',   bg: '#1A9E4A' },
-  { id: 'lost',  icon: '✕',  label: 'Mark as Lost', sub: 'Pending bet lost',  bg: '#D93025' },
-  { id: 'stats', icon: '📊', label: "Today's P&L",  sub: 'Quick snapshot',    bg: '#0284C7' },
-];
+// Radial positions — arc going upward along right edge
+// Each action: { id, icon, label, sublabel, bg, tx (translateX), ty (translateY) }
+function buildActions(hasPendingBets, isProfit) {
+  var base = [
+    {
+      id: 'add',
+      icon: '＋',
+      label: 'New Bet',
+      sublabel: 'Log a bet',
+      bg: '#E50914',
+      tx: -10,   // slight left
+      ty: -72,   // stack upward
+    },
+    {
+      id: 'won',
+      icon: '✓',
+      label: 'Mark Won',
+      sublabel: 'Pending bet won',
+      bg: '#1A9E4A',
+      tx: 0,
+      ty: -144,
+    },
+    {
+      id: 'lost',
+      icon: '✕',
+      label: 'Mark Lost',
+      sublabel: 'Pending bet lost',
+      bg: '#D93025',
+      tx: 0,
+      ty: -216,
+    },
+    {
+      id: 'stats',
+      icon: '📊',
+      label: "Today's P&L",
+      sublabel: 'Quick snapshot',
+      bg: '#0284C7',
+      tx: 0,
+      ty: -288,
+    },
+  ];
 
-export default function FloatingMenu({ onAction, hasPendingBets }) {
-  var [open, setOpen] = useState(false);
-  var menuAnim    = useRef(new RNAnimated.Value(0)).current;
-  var rotateAnim  = useRef(new RNAnimated.Value(0)).current;
-  var bgAnim      = useRef(new RNAnimated.Value(0)).current;
-  var pulseAnim   = useRef(new RNAnimated.Value(1)).current;
-  var pulseRef    = useRef(null);
+  // Filter won/lost if no pending
+  if (!hasPendingBets) {
+    base = base.filter(function(a) { return a.id !== 'won' && a.id !== 'lost'; });
+    // Recompute ty for remaining items
+    base.forEach(function(a, i) { a.ty = -(i + 1) * 72; });
+  }
 
-  var actions = ACTIONS.filter(function(a) {
-    if ((a.id === 'won' || a.id === 'lost') && !hasPendingBets) return false;
-    return true;
+  return base;
+}
+
+// Single action button — all hooks at top level
+function ActionBtn({ action, progress, onPress, isProfit }) {
+  var btnScale = useRef(new RNAnimated.Value(1)).current;
+
+  var translateX = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, action.tx],
+    extrapolate: 'clamp',
+  });
+  var translateY = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, action.ty],
+    extrapolate: 'clamp',
+  });
+  var scale = progress.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.3, 0.7, 1],
+    extrapolate: 'clamp',
+  });
+  var opacity = progress.interpolate({
+    inputRange: [0, 0.4, 1],
+    outputRange: [0, 0, 1],
+    extrapolate: 'clamp',
   });
 
+  // Label slides in from right
+  var labelOpacity = progress.interpolate({
+    inputRange: [0, 0.6, 1],
+    outputRange: [0, 0, 1],
+    extrapolate: 'clamp',
+  });
+
+  return (
+    <RNAnimated.View
+      pointerEvents="box-none"
+      style={[
+        st.actionWrap,
+        {
+          transform: [
+            { translateX: translateX },
+            { translateY: translateY },
+            { scale: scale },
+          ],
+          opacity: opacity,
+        },
+      ]}
+    >
+      {/* Label pill — left of button */}
+      <RNAnimated.View style={[st.labelWrap, { opacity: labelOpacity }]}>
+        <View style={st.labelPill}>
+          <Text style={st.labelMain}>{action.label}</Text>
+          <Text style={st.labelSub}>{action.sublabel}</Text>
+        </View>
+        <View style={st.labelArrow} />
+      </RNAnimated.View>
+
+      {/* Circle button */}
+      <Pressable
+        onPressIn={() => {
+          btnScale.setValue(0.88);
+        }}
+        onPressOut={() => {
+          RNAnimated.spring(btnScale, { toValue: 1, useNativeDriver: true, damping: 14, stiffness: 250 }).start();
+        }}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onPress(action.id);
+        }}
+      >
+        <RNAnimated.View
+          style={[
+            st.circle,
+            {
+              backgroundColor: action.bg,
+              shadowColor: action.bg,
+              transform: [{ scale: btnScale }],
+            },
+          ]}
+        >
+          <Text style={st.circleIcon}>{action.icon}</Text>
+        </RNAnimated.View>
+      </Pressable>
+    </RNAnimated.View>
+  );
+}
+
+export default function FloatingMenu({ onAction, hasPendingBets, isProfit, totalPnL }) {
+  var [open, setOpen] = useState(false);
+  var progress   = useRef(new RNAnimated.Value(0)).current;
+  var fabRotate  = useRef(new RNAnimated.Value(0)).current;
+  var fabScale   = useRef(new RNAnimated.Value(1)).current;
+  var bgOpacity  = useRef(new RNAnimated.Value(0)).current;
+  var pulseAnim  = useRef(new RNAnimated.Value(1)).current;
+  var pulseLoop  = useRef(null);
+
+  var actions = buildActions(hasPendingBets, isProfit);
+
+  // FAB color — green glow if profit, red if loss
+  var fabBg    = isProfit ? '#1A9E4A' : '#E50914';
+  var fabGlow  = isProfit ? '#1A9E4A' : '#E50914';
+
+  // Pulse when closed
   useEffect(function() {
     if (!open) {
-      pulseRef.current = RNAnimated.loop(
+      pulseLoop.current = RNAnimated.loop(
         RNAnimated.sequence([
-          RNAnimated.timing(pulseAnim, { toValue: 1.3, duration: 1000, useNativeDriver: true }),
-          RNAnimated.timing(pulseAnim, { toValue: 1,   duration: 1000, useNativeDriver: true }),
+          RNAnimated.timing(pulseAnim, { toValue: 1.28, duration: 900, useNativeDriver: true }),
+          RNAnimated.timing(pulseAnim, { toValue: 1,    duration: 900, useNativeDriver: true }),
         ])
       );
-      pulseRef.current.start();
+      pulseLoop.current.start();
     } else {
-      if (pulseRef.current) pulseRef.current.stop();
+      if (pulseLoop.current) pulseLoop.current.stop();
       pulseAnim.setValue(1);
     }
-    return function() { if (pulseRef.current) pulseRef.current.stop(); };
+    return function() { if (pulseLoop.current) pulseLoop.current.stop(); };
   }, [open]);
 
   function openMenu() {
     setOpen(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     RNAnimated.parallel([
-      RNAnimated.spring(menuAnim,   { toValue: 1, useNativeDriver: true, damping: 18, stiffness: 260 }),
-      RNAnimated.spring(rotateAnim, { toValue: 1, useNativeDriver: true, damping: 18, stiffness: 260 }),
-      RNAnimated.timing(bgAnim,     { toValue: 1, duration: 200, useNativeDriver: true }),
+      RNAnimated.spring(progress,  { toValue: 1, useNativeDriver: false, damping: 14, stiffness: 120 }),
+      RNAnimated.spring(fabRotate, { toValue: 1, useNativeDriver: true,  damping: 14, stiffness: 120 }),
+      RNAnimated.spring(fabScale,  { toValue: 0.9, useNativeDriver: true, damping: 14 }),
+      RNAnimated.timing(bgOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
     ]).start();
   }
 
   function closeMenu() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     RNAnimated.parallel([
-      RNAnimated.spring(menuAnim,   { toValue: 0, useNativeDriver: true, damping: 22, stiffness: 300 }),
-      RNAnimated.spring(rotateAnim, { toValue: 0, useNativeDriver: true, damping: 22, stiffness: 300 }),
-      RNAnimated.timing(bgAnim,     { toValue: 0, duration: 160, useNativeDriver: true }),
+      RNAnimated.spring(progress,  { toValue: 0, useNativeDriver: false, damping: 20, stiffness: 200 }),
+      RNAnimated.spring(fabRotate, { toValue: 0, useNativeDriver: true,  damping: 20, stiffness: 200 }),
+      RNAnimated.spring(fabScale,  { toValue: 1, useNativeDriver: true,  damping: 14 }),
+      RNAnimated.timing(bgOpacity, { toValue: 0, duration: 160, useNativeDriver: true }),
     ]).start(function() { setOpen(false); });
   }
 
@@ -66,63 +201,73 @@ export default function FloatingMenu({ onAction, hasPendingBets }) {
 
   function handleAction(id) {
     closeMenu();
-    setTimeout(function() { if (onAction) onAction(id); }, 180);
+    setTimeout(function() { if (onAction) onAction(id); }, 200);
   }
 
-  var rotate = rotateAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] });
-  var pulseOpacity = pulseAnim.interpolate({ inputRange: [1, 1.3], outputRange: [0.4, 0], extrapolate: 'clamp' });
+  var rotate = fabRotate.interpolate({
+    inputRange: [0, 1], outputRange: ['0deg', '45deg'],
+  });
+  var pulseOpacity = pulseAnim.interpolate({
+    inputRange: [1, 1.28], outputRange: [0.45, 0], extrapolate: 'clamp',
+  });
 
   return (
     <>
+      {/* Dim backdrop */}
       {open && (
         <TouchableWithoutFeedback onPress={closeMenu}>
-          <RNAnimated.View style={[st.backdrop, { opacity: bgAnim }]} />
+          <RNAnimated.View style={[st.backdrop, { opacity: bgOpacity }]} />
         </TouchableWithoutFeedback>
       )}
 
-      <View style={st.wrap} pointerEvents="box-none">
+      {/* FAB container — bottom-right anchor */}
+      <View style={st.container} pointerEvents="box-none">
 
-        {actions.map(function(action, idx) {
-          var ty = menuAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, -((idx + 1) * 70)],
-          });
-          var sc = menuAnim.interpolate({
-            inputRange: [0, 1], outputRange: [0.4, 1], extrapolate: 'clamp',
-          });
-          var op = menuAnim.interpolate({
-            inputRange: [0, 0.5, 1], outputRange: [0, 0, 1], extrapolate: 'clamp',
-          });
-
+        {/* Action buttons — rendered as siblings so hooks work */}
+        {actions.map(function(action) {
           return (
-            <RNAnimated.View
+            <ActionBtn
               key={action.id}
-              pointerEvents={open ? 'auto' : 'none'}
-              style={[st.item, { transform: [{ translateY: ty }, { scale: sc }], opacity: op }]}
-            >
-              <View style={st.lblRow}>
-                <View style={st.lbl}>
-                  <Text style={st.lblMain}>{action.label}</Text>
-                  <Text style={st.lblSub}>{action.sub}</Text>
-                </View>
-                <View style={st.arrow} />
-              </View>
-              <Pressable
-                onPress={function() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleAction(action.id); }}
-                style={function(p) { return [st.circle, { backgroundColor: action.bg, shadowColor: action.bg, opacity: p.pressed ? 0.82 : 1 }]; }}
-              >
-                <Text style={st.circleIcon}>{action.icon}</Text>
-              </Pressable>
-            </RNAnimated.View>
+              action={action}
+              progress={progress}
+              onPress={handleAction}
+              isProfit={isProfit}
+            />
           );
         })}
 
-        <Pressable onPress={toggle} style={function(p) { return { opacity: p.pressed ? 0.9 : 1 }; }}>
-          <RNAnimated.View style={[st.fab, { transform: [{ rotate: rotate }] }]}>
+        {/* Main FAB */}
+        <Pressable
+          onPressIn={function() {
+            RNAnimated.spring(fabScale, { toValue: 0.92, useNativeDriver: true, damping: 12 }).start();
+          }}
+          onPressOut={function() {
+            RNAnimated.spring(fabScale, { toValue: open ? 0.9 : 1, useNativeDriver: true, damping: 12 }).start();
+          }}
+          onPress={toggle}
+        >
+          <RNAnimated.View
+            style={[
+              st.fab,
+              {
+                backgroundColor: fabBg,
+                shadowColor: fabGlow,
+                transform: [{ rotate: rotate }, { scale: fabScale }],
+              },
+            ]}
+          >
+            {/* Pulse ring */}
             {!open && (
               <RNAnimated.View
                 pointerEvents="none"
-                style={[st.pulse, { transform: [{ scale: pulseAnim }], opacity: pulseOpacity }]}
+                style={[
+                  st.pulse,
+                  {
+                    backgroundColor: fabBg,
+                    transform: [{ scale: pulseAnim }],
+                    opacity: pulseOpacity,
+                  },
+                ]}
               />
             )}
             <Text style={st.fabIcon}>＋</Text>
@@ -137,55 +282,108 @@ export default function FloatingMenu({ onAction, hasPendingBets }) {
 var st = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.48)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     zIndex: 98,
   },
-  wrap: {
+  container: {
     position: 'absolute',
-    bottom: 110,
-    left: 24,
+    bottom: Platform.OS === 'ios' ? 96 : 88,
+    right: 20,
     alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 99,
   },
+
+  // Main FAB
   fab: {
-    width: 58, height: 58, borderRadius: 29,
-    backgroundColor: '#E50914',
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#E50914',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.6, shadowRadius: 20, elevation: 15,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 14,
   },
-  fabIcon: { fontSize: 25, color: '#fff', lineHeight: 29 },
+  fabIcon: {
+    fontSize: 26,
+    color: '#fff',
+    lineHeight: 30,
+    fontWeight: '300',
+  },
   pulse: {
     position: 'absolute',
-    width: 58, height: 58, borderRadius: 29,
-    backgroundColor: '#E50914',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
-  item: {
-    position: 'absolute', bottom: 0, right: 0,
-    flexDirection: 'row', alignItems: 'center', gap: 10,
+
+  // Action item wrapper — absolutely positioned over FAB
+  actionWrap: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  lblRow: { flexDirection: 'row', alignItems: 'center' },
-  lbl: {
-    backgroundColor: '#fff', borderRadius: 12,
-    paddingHorizontal: 13, paddingVertical: 8,
+
+  // Label
+  labelWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  labelPill: {
+    backgroundColor: 'rgba(15,15,15,0.88)',
+    borderRadius: 12,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12, shadowRadius: 8, elevation: 5,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  lblMain: { fontSize: 13, fontWeight: '700', color: '#111', letterSpacing: -0.2 },
-  lblSub:  { fontSize: 10, color: '#888', fontWeight: '500', marginTop: 1 },
-  arrow: {
-    width: 0, height: 0,
-    borderTopWidth: 5, borderBottomWidth: 5, borderLeftWidth: 6,
-    borderTopColor: 'transparent', borderBottomColor: 'transparent',
-    borderLeftColor: '#fff', marginLeft: -1,
+  labelMain: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: -0.2,
   },
+  labelSub: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.6)',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  labelArrow: {
+    width: 0,
+    height: 0,
+    borderTopWidth: 5,
+    borderBottomWidth: 5,
+    borderLeftWidth: 6,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderLeftColor: 'rgba(15,15,15,0.88)',
+    marginLeft: -1,
+  },
+
+  // Action circle
   circle: {
-    width: 48, height: 48, borderRadius: 24,
-    alignItems: 'center', justifyContent: 'center',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 8,
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 10,
   },
-  circleIcon: { fontSize: 19, color: '#fff', fontWeight: '700' },
+  circleIcon: {
+    fontSize: 20,
+    color: '#fff',
+    fontWeight: '700',
+  },
 });

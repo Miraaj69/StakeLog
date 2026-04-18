@@ -5,15 +5,9 @@ import { View, Text, StyleSheet, Pressable, StatusBar, Platform, Alert } from 'r
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  useAnimatedGestureHandler,
-  withSpring,
-  withTiming,
-  runOnJS,
-  FadeIn,
+  useSharedValue, useAnimatedStyle, withSpring, withTiming, FadeIn,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { registerRootComponent } from 'expo';
@@ -29,9 +23,6 @@ import BetsScreen from './BetsScreen';
 import StatsScreen from './StatsScreen';
 import BankrollScreen from './BankrollScreen';
 import SettingsScreen from './SettingsScreen';
-
-Text.defaultProps = Text.defaultProps || {};
-Text.defaultProps.allowFontScaling = false;
 
 const Tab = createBottomTabNavigator();
 
@@ -159,45 +150,35 @@ const TABS = [
   { label:'Settings', emoji:'⚙️' },
 ];
 
-// Separate component so hooks are never called inside .map()
-function TabItem({ route, idx, focused, navigation }) {
-  const { colors } = useTheme();
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const onPress = () => {
-    scale.value = withSpring(0.82, { damping: 12 }, () => { scale.value = withSpring(1, { damping: 14 }); });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (!focused) navigation.navigate(route.name);
-  };
-  return (
-    <Pressable key={route.name} onPress={onPress} style={tabS.tab}>
-      <Animated.View style={[tabS.inner, animStyle]}>
-        <Text style={[tabS.emoji, { opacity: focused ? 1 : 0.55 }]}>{TABS[idx].emoji}</Text>
-        <Text style={[tabS.label, {
-          color: focused ? '#E50914' : '#9CA3AF',
-          fontWeight: focused ? '700' : '500',
-        }]}>
-          {TABS[idx].label}
-        </Text>
-        {focused && <View style={tabS.indicator} />}
-      </Animated.View>
-    </Pressable>
-  );
-}
-
 function CustomTabBar({ state, navigation }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   return (
     <View style={[tabS.bar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-      {state.routes.map((route, idx) => (
-        <TabItem
-          key={route.name}
-          route={route}
-          idx={idx}
-          focused={state.index === idx}
-          navigation={navigation}
-        />
-      ))}
+      {state.routes.map((route, idx) => {
+        const focused = state.index === idx;
+        const scale = useSharedValue(1);
+        const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+        const onPress = () => {
+          scale.value = withSpring(0.82, { damping: 12 }, () => { scale.value = withSpring(1, { damping: 14 }); });
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          if (!focused) navigation.navigate(route.name);
+        };
+        return (
+          <Pressable key={route.name} onPress={onPress} style={tabS.tab}>
+            <Animated.View style={[tabS.inner, animStyle]}>
+              <Text style={[tabS.emoji, { opacity: focused ? 1 : 0.55 }]}>{TABS[idx].emoji}</Text>
+              <Text style={[tabS.label, {
+                color: focused ? '#E50914' : '#9CA3AF',
+                fontWeight: focused ? '700' : '500',
+              }]}>
+                {TABS[idx].label}
+              </Text>
+              {/* Active indicator — thin underline dot */}
+              {focused && <View style={tabS.indicator} />}
+            </Animated.View>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -259,7 +240,7 @@ function GlobalFAB({ currentTab }) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Done ✓', 'Last bet duplicated as Pending.');
     } else if (id === 'stats') {
-      const todayCount = bets.filter(function(b) { return new Date(b.date).toDateString() === new Date().toDateString(); });
+      var todayCount = bets.filter(function(b) { return new Date(b.date).toDateString() === new Date().toDateString(); });
       Alert.alert(
         "Today's P&L",
         todayCount.length === 0 ? 'No bets today yet.' :
@@ -272,11 +253,15 @@ function GlobalFAB({ currentTab }) {
     }
   };
 
+  var isProfit = stats.totalPnL >= 0;
+
   return (
     <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, top: 0 }} pointerEvents="box-none">
       <FloatingMenu
         onAction={handleAction}
         hasPendingBets={pendingBets.length > 0}
+        isProfit={isProfit}
+        totalPnL={stats.totalPnL}
       />
       <AddBetModal
         visible={modalVisible}
@@ -321,6 +306,7 @@ function MainTabs() {
   );
 }
 
+
 function AppContent() {
   const { colors, isDark } = useTheme();
   const init = useStore(s => s.init);
@@ -331,8 +317,10 @@ function AppContent() {
   const [pinMode, setPinMode] = useState(null);
 
   useEffect(() => {
+    // Init Zustand store from AsyncStorage
     migrateIfNeeded();
     init();
+    // Load auth state separately
     Promise.all([
       getItem(KEYS.ONBOARDED, false),
       getItem(KEYS.PIN_ENABLED, false),
