@@ -22,7 +22,7 @@ export default function StatsCard({ icon, label, value, subValue, color, bgColor
   const content = (
     <View style={s.content}>
       {icon && <Text style={s.icon}>{icon}</Text>}
-      <Text style={[s.value, { color: color || colors.textPrimary }]} numberOfLines={1} ellipsizeMode="tail"
+      <Text style={[s.value, { color: color || colors.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
         {value}
       </Text>
       <Text style={s.label}>{label}</Text>
