@@ -1,72 +1,116 @@
-// theme.js — StakeLog Premium Design System v2
+// utils/theme.js
+
 export const Colors = {
-  primary: '#7C6BFF',
-  primaryLight: '#A89DFF',
-  primaryDark: '#5A4BDD',
-  primaryContainer: 'rgba(124,107,255,0.15)',
-  primaryGlow: 'rgba(124,107,255,0.35)',
+  // Brand
+  primary: '#E50914',
+  primaryLight: '#FF453A',
+  primaryDark: '#C0000A',
+  primaryContainer: '#FFD9D8',
   onPrimary: '#FFFFFF',
-  profit: '#4ADE80',
-  profitLight: '#86EFAC',
-  profitContainer: 'rgba(74,222,128,0.10)',
-  profitBorder: 'rgba(74,222,128,0.25)',
-  loss: '#F87171',
-  lossLight: '#FCA5A5',
-  lossContainer: 'rgba(248,113,113,0.10)',
-  lossBorder: 'rgba(248,113,113,0.25)',
-  pending: '#FCD34D',
-  pendingContainer: 'rgba(252,211,77,0.12)',
-  pendingBorder: 'rgba(252,211,77,0.28)',
-  void: '#6B7280',
-  voidContainer: 'rgba(107,114,128,0.10)',
-  background: '#F4F5F9',
+
+  // Semantic
+  profit: '#00C853',
+  profitLight: '#69F0AE',
+  profitContainer: '#E8F5E9',
+  loss: '#E53935',
+  lossLight: '#EF9A9A',
+  lossContainer: '#FFEBEE',
+  pending: '#FF6F00',
+  pendingContainer: '#FFF8E1',
+  void: '#757575',
+  voidContainer: '#F5F5F5',
+
+  // Surfaces
+  background: '#F8F9FA',
   surface: '#FFFFFF',
-  surfaceVariant: '#F0F1F6',
-  border: 'rgba(0,0,0,0.07)',
-  borderStrong: 'rgba(0,0,0,0.12)',
-  textPrimary: '#0A0A14',
-  textSecondary: '#5A5A72',
-  textTertiary: '#9898B0',
+  surfaceVariant: '#F1F3F5',
+  surfaceElevated: '#FFFFFF',
+  border: '#E9ECEF',
+  borderLight: '#F1F3F5',
+
+  // Text
+  textPrimary: '#0D0D0D',
+  textSecondary: '#6B7280',
+  textTertiary: '#9CA3AF',
   textInverse: '#FFFFFF',
+
+  // Dark theme
   dark: {
-    background: '#0A0A0F',
-    surface: '#13131E',
-    surfaceVariant: '#1A1A28',
-    border: 'rgba(255,255,255,0.07)',
-    borderStrong: 'rgba(255,255,255,0.13)',
-    textPrimary: '#F0F0FF',
-    textSecondary: 'rgba(240,240,255,0.58)',
-    textTertiary: 'rgba(240,240,255,0.30)',
-    profit: '#4ADE80',
-    profitContainer: 'rgba(74,222,128,0.08)',
-    profitBorder: 'rgba(74,222,128,0.22)',
-    loss: '#F87171',
-    lossContainer: 'rgba(248,113,113,0.08)',
-    lossBorder: 'rgba(248,113,113,0.22)',
-    primary: '#7C6BFF',
-    primaryContainer: 'rgba(124,107,255,0.18)',
-    primaryBorder: 'rgba(124,107,255,0.30)',
-    pending: '#FCD34D',
-    pendingContainer: 'rgba(252,211,77,0.10)',
-    pendingBorder: 'rgba(252,211,77,0.25)',
+    background: '#121212',
+    surface: '#1E1E1E',
+    surfaceVariant: '#2A2A2A',
+    surfaceElevated: '#252525',
+    border: '#333333',
+    borderLight: '#2A2A2A',
+    textPrimary: '#F9FAFB',
+    textSecondary: '#9CA3AF',
+    textTertiary: '#6B7280',
+    profit: '#4CAF50',
+    profitContainer: '#1B5E20',
+    loss: '#EF5350',
+    lossContainer: '#B71C1C',
+    primaryContainer: '#4A0000',
   },
 };
-export const Spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 };
-export const Radius = { sm: 8, md: 12, lg: 16, xl: 20, card: 22, hero: 28, full: 999 };
-export const Typography = {
-  hero:      { fontSize: 44, fontWeight: '800', letterSpacing: -2 },
-  h1:        { fontSize: 26, fontWeight: '800', letterSpacing: -0.8 },
-  h2:        { fontSize: 20, fontWeight: '700', letterSpacing: -0.4 },
-  h3:        { fontSize: 16, fontWeight: '700' },
-  body:      { fontSize: 15, fontWeight: '400', lineHeight: 22 },
-  bodySmall: { fontSize: 13, fontWeight: '400', lineHeight: 19 },
-  label:     { fontSize: 12, fontWeight: '600', letterSpacing: 0.3 },
-  caption:   { fontSize: 11, fontWeight: '600' },
-  micro:     { fontSize: 9,  fontWeight: '700', letterSpacing: 1.0, textTransform: 'uppercase' },
+
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
 };
+
+export const Radius = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  full: 999,
+};
+
+export const Typography = {
+  hero: { fontSize: 40, fontWeight: '900', letterSpacing: -1.5 },
+  h1: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
+  h2: { fontSize: 22, fontWeight: '700' },
+  h3: { fontSize: 18, fontWeight: '700' },
+  h4: { fontSize: 16, fontWeight: '600' },
+  body: { fontSize: 15, fontWeight: '400' },
+  bodySmall: { fontSize: 13, fontWeight: '400' },
+  label: { fontSize: 12, fontWeight: '600', letterSpacing: 0.5 },
+  caption: { fontSize: 11, fontWeight: '500' },
+  micro: { fontSize: 10, fontWeight: '600', letterSpacing: 0.8 },
+};
+
 export const Shadows = {
-  sm: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
-  md: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.10, shadowRadius: 12, elevation: 5 },
-  lg: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.14, shadowRadius: 20, elevation: 10 },
-  primary: { shadowColor: '#7C6BFF', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.40, shadowRadius: 16, elevation: 8 },
+  sm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  lg: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  primary: {
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
+  },
 };

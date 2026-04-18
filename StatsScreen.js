@@ -1,4 +1,4 @@
-// StatsScreen.js — Premium v2: Calendar heatmap, badges, sport bars, profit curve, gamification
+// StatsScreen.js — Fixed: equal cards, proper tabs, useStats
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,216 +13,79 @@ import {
   getCurrencySymbol, ACHIEVEMENTS,
 } from './calculations';
 
-var W = Dimensions.get('window').width;
-var TABS = ['Overview', 'Sports', 'Calendar', 'Insights', 'Badges'];
+var SCREEN_W = Dimensions.get('window').width;
+var TABS = ['Overview', 'Insights', 'Odds', 'Heatmap', 'Tags', 'Badges'];
 
-// ── Stat Square ────────────────────────────────────────────────
-function StatSq({ icon, value, label, color, bg, border, colors }) {
+// Equal-size stat card
+function StatCard({ icon, value, label, color, bg, border, colors }) {
   return (
-    <View style={[sq.card, { backgroundColor: bg || colors.surface, borderColor: border || colors.border }]}>
-      {icon ? <Text style={sq.icon}>{icon}</Text> : null}
-      <Text style={[sq.val, { color: color || colors.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
-      <Text style={[sq.lbl, { color: colors.textTertiary }]} numberOfLines={1}>{label}</Text>
+    <View style={[sc.card, { backgroundColor: bg || colors.surface, borderColor: border || colors.border }]}>
+      {icon ? <Text style={sc.icon}>{icon}</Text> : null}
+      <Text style={[sc.value, { color: color || colors.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
+        {value}
+      </Text>
+      <Text style={[sc.label, { color: colors.textTertiary }]} numberOfLines={1}>
+        {label}
+      </Text>
     </View>
   );
 }
-var sq = StyleSheet.create({
-  card: { width: '23%', aspectRatio: 1, borderRadius: 18, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 4, borderWidth: 0.5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
-  icon: { fontSize: 15, marginBottom: 3 },
-  val:  { fontSize: 13, fontWeight: '800', letterSpacing: -0.2, textAlign: 'center', width: '100%' },
-  lbl:  { fontSize: 8,  fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.3, marginTop: 2, textAlign: 'center', width: '100%' },
+var sc = StyleSheet.create({
+  card: {
+    width: '23%',
+    aspectRatio: 1,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+    borderWidth: 0.5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  icon:  { fontSize: 16, marginBottom: 3 },
+  value: { fontSize: 13, fontWeight: '800', letterSpacing: -0.2, textAlign: 'center', width: '100%' },
+  label: { fontSize: 9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3, marginTop: 2, textAlign: 'center', width: '100%' },
 });
 
-// ── Calendar Heatmap ───────────────────────────────────────────
-function CalendarView({ bets, colors, isDark }) {
-  var now    = new Date();
-  var year   = now.getFullYear();
-  var month  = now.getMonth();
-  var days   = new Date(year, month + 1, 0).getDate();
-  var startDow = new Date(year, month, 1).getDay(); // 0=Sun
-  var adjusted = (startDow === 0) ? 6 : startDow - 1; // Mon=0
-
-  var pnlMap = useMemo(function() { return calcPnLByDay(bets); }, [bets]);
-
-  var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  var dayLabels  = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-
-  var cells = [];
-  for (var i = 0; i < adjusted; i++) cells.push({ day: null });
-  for (var d = 1; d <= days; d++) {
-    var pnlInfo = pnlMap[d];
-    cells.push({ day: d, pnl: pnlInfo ? pnlInfo.pnl : null, count: pnlInfo ? pnlInfo.count : 0 });
-  }
-
-  function cellStyle(cell) {
-    if (!cell.day) return {};
-    if (cell.pnl === null) return { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' };
-    if (cell.pnl > 0)  return { backgroundColor: isDark ? 'rgba(74,222,128,0.18)' : 'rgba(74,222,128,0.15)' };
-    if (cell.pnl < 0)  return { backgroundColor: isDark ? 'rgba(248,113,113,0.18)' : 'rgba(248,113,113,0.12)' };
-    return { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' };
-  }
-  function cellTextColor(cell) {
-    if (!cell.day) return 'transparent';
-    if (cell.day === now.getDate()) return '#7C6BFF';
-    if (cell.pnl === null) return isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.18)';
-    if (cell.pnl > 0) return '#4ADE80';
-    if (cell.pnl < 0) return '#F87171';
-    return colors.textTertiary;
-  }
-
-  return (
-    <View style={[cal.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Text style={[cal.month, { color: colors.textPrimary }]}>{monthNames[month]} {year}</Text>
-      <View style={cal.dayLabels}>
-        {dayLabels.map(function(l) {
-          return <Text key={l} style={[cal.dayLbl, { color: colors.textTertiary }]}>{l}</Text>;
-        })}
-      </View>
-      <View style={cal.grid}>
-        {cells.map(function(cell, idx) {
-          return (
-            <View key={idx} style={[cal.cell, cellStyle(cell),
-              cell.day === now.getDate() && { borderWidth: 1.5, borderColor: '#7C6BFF' }
-            ]}>
-              <Text style={[cal.cellTxt, { color: cellTextColor(cell) }]}>
-                {cell.day || ''}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
-      <View style={cal.legend}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-          <View style={[cal.dot, { backgroundColor: 'rgba(74,222,128,0.5)' }]} />
-          <Text style={[cal.legTxt, { color: colors.textTertiary }]}>Profit</Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-          <View style={[cal.dot, { backgroundColor: 'rgba(248,113,113,0.5)' }]} />
-          <Text style={[cal.legTxt, { color: colors.textTertiary }]}>Loss</Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-          <View style={[cal.dot, { backgroundColor: '#7C6BFF' }]} />
-          <Text style={[cal.legTxt, { color: colors.textTertiary }]}>Today</Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-var cal = StyleSheet.create({
-  card:      { borderRadius: 24, padding: 18, borderWidth: 0.5, marginBottom: 16 },
-  month:     { fontSize: 14, fontWeight: '700', marginBottom: 14 },
-  dayLabels: { flexDirection: 'row', marginBottom: 6 },
-  dayLbl:    { flex: 1, fontSize: 8, fontWeight: '700', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3 },
-  grid:      { flexDirection: 'row', flexWrap: 'wrap' },
-  cell:      { width: '14.28%', aspectRatio: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  cellTxt:   { fontSize: 11, fontWeight: '700' },
-  legend:    { flexDirection: 'row', gap: 16, marginTop: 10, justifyContent: 'center' },
-  dot:       { width: 8, height: 8, borderRadius: 4 },
-  legTxt:    { fontSize: 10, fontWeight: '600' },
-});
-
-// ── Sport Row ──────────────────────────────────────────────────
-function SportRow({ sport, maxPnl, colors, isDark, currSym }) {
-  var pct = maxPnl > 0 ? Math.min(100, Math.abs(sport.pnl) / maxPnl * 100) : 0;
-  var isPos = sport.pnl >= 0;
-  var wr = sport.won + sport.lost > 0 ? Math.round(sport.won / (sport.won + sport.lost) * 100) : 0;
-  return (
-    <View style={[sr.row, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Text style={sr.icon}>{sport.name.substring(0, 2)}</Text>
-      <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-          <Text style={[sr.name, { color: colors.textPrimary }]}>{sport.name.substring(2).trim()}</Text>
-          <Text style={[sr.pnl, { color: isPos ? '#4ADE80' : '#F87171' }]}>
-            {isPos ? '+' : ''}{formatMoney(sport.pnl, currSym)}
-          </Text>
-        </View>
-        <View style={[sr.barBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)' }]}>
-          <View style={[sr.barFill, { width: pct + '%', backgroundColor: isPos ? '#4ADE80' : '#F87171' }]} />
-        </View>
-        <Text style={[sr.meta, { color: colors.textTertiary }]}>{sport.bets.length} bets • {wr}% WR</Text>
-      </View>
-    </View>
-  );
-}
-var sr = StyleSheet.create({
-  row:    { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, padding: 14, borderWidth: 0.5, marginBottom: 8 },
-  icon:   { fontSize: 22, width: 28, textAlign: 'center' },
-  name:   { fontSize: 14, fontWeight: '700' },
-  pnl:    { fontSize: 14, fontWeight: '800', letterSpacing: -0.3 },
-  barBg:  { borderRadius: 999, height: 6, overflow: 'hidden', marginBottom: 4 },
-  barFill:{ height: '100%', borderRadius: 999 },
-  meta:   { fontSize: 10, fontWeight: '600' },
-});
-
-// ── Badge Card ─────────────────────────────────────────────────
-function BadgeCard({ ach, unlocked, colors, isDark }) {
-  return (
-    <View style={[bg.card, {
-      backgroundColor: unlocked
-        ? (isDark ? 'rgba(124,107,255,0.10)' : '#F5F3FF')
-        : colors.surface,
-      borderColor: unlocked
-        ? (isDark ? 'rgba(124,107,255,0.28)' : '#C4B5FD')
-        : colors.border,
-      opacity: unlocked ? 1 : 0.45,
-    }]}>
-      <Text style={bg.icon}>{ach.icon}</Text>
-      <Text style={[bg.title, { color: unlocked ? (isDark ? '#A89DFF' : '#5B21B6') : colors.textTertiary }]}>{ach.title}</Text>
-      <Text style={[bg.desc, { color: colors.textTertiary }]}>{ach.desc}</Text>
-      {unlocked && (
-        <View style={[bg.unlockBadge, { backgroundColor: 'rgba(74,222,128,0.15)' }]}>
-          <Text style={bg.unlockTxt}>✓ Unlocked</Text>
-        </View>
-      )}
-    </View>
-  );
-}
-var bg = StyleSheet.create({
-  card:        { borderRadius: 20, padding: 16, borderWidth: 0.5, alignItems: 'center', gap: 4, width: (W - 48) / 2 },
-  icon:        { fontSize: 30, marginBottom: 4 },
-  title:       { fontSize: 13, fontWeight: '800', textAlign: 'center' },
-  desc:        { fontSize: 11, fontWeight: '500', textAlign: 'center', lineHeight: 15 },
-  unlockBadge: { marginTop: 6, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
-  unlockTxt:   { fontSize: 10, fontWeight: '700', color: '#4ADE80' },
-});
-
-// ── Main Screen ───────────────────────────────────────────────
 export default function StatsScreen() {
-  var { colors, isDark } = useTheme();
-  var bets     = useStore(function(s) { return s.bets; });
-  var bookies  = useStore(function(s) { return s.bookies; });
-  var sports   = useStore(function(s) { return s.sports; });
+  var { colors } = useTheme();
+  var bets    = useStore(function(s) { return s.bets; });
+  var bookies = useStore(function(s) { return s.bookies; });
+  var sports  = useStore(function(s) { return s.sports; });
   var currency = useStore(function(s) { return s.currency; });
-  var stats    = useStats();
-  var currSym  = getCurrencySymbol(currency);
+  var stats   = useStats();
+  var currSym = getCurrencySymbol(currency);
 
-  var [activeTab,  setActiveTab]  = useState('Overview');
-  var [dateFilter, setDateFilter] = useState('30D');
+  var [activeTab, setActiveTab] = useState('Overview');
 
-  var pnlData     = useMemo(function() { return calcPnLTimeSeries(bets); }, [bets]);
-  var sportStats  = useMemo(function() { return calcSportStats(bets, sports); }, [bets, sports]);
-  var bookieStats = useMemo(function() { return calcBookieStats(bets, bookies); }, [bets, bookies]);
+  var pnlData      = useMemo(function() { return calcPnLTimeSeries(bets); }, [bets]);
+  var sportStats   = useMemo(function() { return calcSportStats(bets, sports); }, [bets, sports]);
+  var bookieStats  = useMemo(function() { return calcBookieStats(bets, bookies); }, [bets, bookies]);
   var oddsBreakdown = useMemo(function() { return calcOddsBreakdown(bets); }, [bets]);
-  var tagStats    = useMemo(function() { return calcTagStats(bets); }, [bets]);
-  var insights    = useMemo(function() { return calcSmartInsights(bets, sportStats, bookieStats, stats.streak, stats.winRate); }, [bets, sportStats, bookieStats, stats]);
-  var unlocked    = useMemo(function() {
+  var tagStats     = useMemo(function() { return calcTagStats(bets); }, [bets]);
+  var insights     = useMemo(function() { return calcSmartInsights(bets, sportStats, bookieStats, stats.streak, stats.winRate); }, [bets, sportStats, bookieStats, stats]);
+  var dayData      = useMemo(function() { return calcPnLByDay(bets); }, [bets]);
+  var unlocked     = useMemo(function() {
     return new Set(ACHIEVEMENTS.filter(function(a) { return a.check(bets, stats.streak, stats.totalPnL, stats.winRate); }).map(function(a) { return a.id; }));
   }, [bets, stats]);
 
   var isProfit = stats.totalPnL >= 0;
-  var maxSportPnl = sportStats.reduce(function(m, s) { return Math.max(m, Math.abs(s.pnl)); }, 0);
 
-  // Empty state
   if (bets.length === 0) {
     return (
       <SafeAreaView style={[s.screen, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[s.topBar, { borderBottomColor: colors.border }]}>
           <Text style={[s.pageTitle, { color: colors.textPrimary }]}>Analytics</Text>
         </View>
-        <View style={s.emptyWrap}>
-          <Text style={s.emptyIllus}>📊</Text>
+        <View style={s.empty}>
+          <Text style={{ fontSize: 48, marginBottom: 14 }}>📊</Text>
           <Text style={[s.emptyTitle, { color: colors.textPrimary }]}>No data yet</Text>
-          <Text style={[s.emptySub, { color: colors.textTertiary }]}>Start logging bets to unlock powerful analytics, charts, and insights</Text>
+          <Text style={[s.emptySub, { color: colors.textTertiary }]}>Add some bets to see analytics</Text>
         </View>
       </SafeAreaView>
     );
@@ -232,94 +95,99 @@ export default function StatsScreen() {
     <SafeAreaView style={[s.screen, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[s.topBar, { borderBottomColor: colors.border }]}>
         <Text style={[s.pageTitle, { color: colors.textPrimary }]}>Analytics</Text>
-        <View style={{ flexDirection: 'row', gap: 6 }}>
-          {['7D', '30D', 'All'].map(function(f) {
-            return (
-              <Pressable key={f} onPress={() => setDateFilter(f)}
-                style={[s.dateBtn, {
-                  backgroundColor: dateFilter === f ? '#7C6BFF' : colors.surface,
-                  borderColor: dateFilter === f ? '#7C6BFF' : colors.border,
-                }]}>
-                <Text style={[s.dateBtnTxt, { color: dateFilter === f ? '#fff' : colors.textTertiary }]}>{f}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
       </View>
 
-      {/* Tab bar */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabScroll}>
-        <View style={{ flexDirection: 'row', gap: 7, padding: 12, paddingBottom: 8 }}>
-          {TABS.map(function(tab) {
-            var active = activeTab === tab;
-            return (
-              <Pressable key={tab} onPress={() => setActiveTab(tab)}
-                style={[s.tab, {
-                  backgroundColor: active ? '#7C6BFF' : colors.surface,
-                  borderColor: active ? '#7C6BFF' : colors.border,
-                }]}>
-                <Text style={[s.tabTxt, { color: active ? '#fff' : colors.textTertiary }]}>{tab}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+      {/* Tab bar — horizontal scroll, no cut-off */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabScroll} contentContainerStyle={[s.tabRow]}>
+        {TABS.map(function(tab) {
+          var active = activeTab === tab;
+          return (
+            <Pressable key={tab} onPress={() => setActiveTab(tab)}
+              style={[s.tab, { backgroundColor: active ? '#E50914' : colors.surfaceVariant, borderColor: active ? '#E50914' : colors.border }]}>
+              <Text style={[s.tabTxt, { color: active ? '#fff' : '#9CA3AF', fontWeight: active ? '700' : '500' }]} numberOfLines={1} adjustsFontSizeToFit>{tab}</Text>
+            </Pressable>
+          );
+        })}
       </ScrollView>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
 
-        {/* ── OVERVIEW TAB ── */}
+        {/* ── OVERVIEW ── */}
         {activeTab === 'Overview' && (
-          <>
-            {/* Profit curve chart */}
-            {pnlData.length >= 2 && (
-              <Animated.View entering={FadeInDown.delay(40).springify()}
-                style={[s.chartCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Text style={[s.chartTitle, { color: colors.textPrimary }]}>Profit Curve</Text>
-                <Text style={[s.chartSub, { color: colors.textTertiary }]}>Cumulative P&L over time</Text>
-                <Chart data={pnlData} color={isProfit ? '#4ADE80' : '#F87171'} height={130} currSym={currSym} />
-              </Animated.View>
-            )}
-
-            {/* Stat grid */}
-            <Animated.View entering={FadeInDown.delay(80).springify()} style={s.statGrid}>
-              <StatSq icon="🎯" value={stats.winRate ? stats.winRate + '%' : '—'} label="Win Rate" color="#7C6BFF" bg={isDark ? 'rgba(124,107,255,0.08)' : '#F5F3FF'} border={isDark ? 'rgba(124,107,255,0.22)' : '#C4B5FD'} colors={colors} />
-              <StatSq icon="📈" value={(isProfit ? '+' : '') + stats.roi + '%'} label="ROI" color={isProfit ? '#4ADE80' : '#F87171'} bg={isProfit ? (isDark ? 'rgba(74,222,128,0.08)' : '#F0FBF4') : (isDark ? 'rgba(248,113,113,0.08)' : '#FDF2F2')} border={isProfit ? (isDark ? 'rgba(74,222,128,0.22)' : '#A7DFB9') : (isDark ? 'rgba(248,113,113,0.22)' : '#FCA5A5')} colors={colors} />
-              <StatSq icon="💸" value={formatMoney(stats.totalStake, currSym)} label="Staked" color={colors.textPrimary} colors={colors} />
-              <StatSq icon="⚡" value={stats.streak.best + 'W'} label="Best Streak" color="#FCD34D" bg={isDark ? 'rgba(252,211,77,0.08)' : '#FFFBEB'} border={isDark ? 'rgba(252,211,77,0.22)' : '#FDE68A'} colors={colors} />
+          <View style={{ gap: 14 }}>
+            {/* Equal 4-card grid — 23% width, aspect 1:1 */}
+            <Animated.View entering={FadeInDown.delay(40).springify()}>
+              <View style={s.cardRow}>
+                <StatCard icon="📈" label="Net P&L"       value={(isProfit?'+':'')+formatMoney(stats.totalPnL, currSym)} color={isProfit?'#1A9E4A':'#D93025'} bg={isProfit?'#E8F8EE':'#FDECEA'} border={isProfit?'#A7DFB9':'#F5B8B2'} colors={colors} />
+                <StatCard icon="💰" label="Staked"        value={formatMoney(stats.totalStake, currSym)}     colors={colors} />
+                <StatCard icon="🎯" label="Win Rate"      value={stats.winRate ? stats.winRate+'%' : '—'}    colors={colors} />
+                <StatCard icon="🔥" label="Best Streak"  value={stats.streak.best > 0 ? stats.streak.best+'×' : '—'} colors={colors} />
+              </View>
             </Animated.View>
 
-            {/* Odds breakdown */}
-            {oddsBreakdown.length > 0 && (
-              <Animated.View entering={FadeInDown.delay(120).springify()}
-                style={[s.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Text style={[s.sectionTitle, { color: colors.textPrimary }]}>Win Rate by Odds</Text>
-                {oddsBreakdown.map(function(od) {
+            {/* P&L Chart */}
+            <Animated.View entering={FadeInDown.delay(80).springify()} style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[s.cardTitle, { color: colors.textPrimary }]}>📈 Cumulative P&L</Text>
+              <Text style={[s.cardSub, { color: colors.textTertiary }]}>Drag to explore</Text>
+              <Chart data={pnlData} color={isProfit ? '#1A9E4A' : '#D93025'} height={120} currSym={currSym} showLabels />
+            </Animated.View>
+
+            {/* Outcome breakdown */}
+            <Animated.View entering={FadeInDown.delay(120).springify()} style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[s.cardTitle, { color: colors.textPrimary }]}>Outcome Breakdown</Text>
+              {[
+                { status: 'Won',     icon: '✓', color: '#1A9E4A', bg: '#E8F8EE', count: stats.wonCount     },
+                { status: 'Lost',    icon: '✕', color: '#D93025', bg: '#FDECEA', count: stats.lostCount    },
+                { status: 'Pending', icon: '◷', color: '#E07B00', bg: '#FFF8E7', count: stats.pendingCount },
+                { status: 'Void',    icon: '—', color: '#888',    bg: '#F5F5F5', count: bets.filter(function(b) { return b.status==='Void'; }).length },
+              ].map(function(item) {
+                var pct = bets.length > 0 ? (item.count / bets.length * 100) : 0;
+                return (
+                  <View key={item.status} style={{ marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <Text style={[s.breakLbl, { color: colors.textSecondary }]}>{item.icon} {item.status}</Text>
+                      <Text style={[s.breakCount, { color: item.color }]}>{item.count} bets</Text>
+                    </View>
+                    <View style={[s.barTrack, { backgroundColor: colors.surfaceVariant }]}>
+                      <View style={[s.barFill, { width: pct+'%', backgroundColor: item.bg, borderColor: item.color+'44', borderWidth: 1 }]} />
+                    </View>
+                  </View>
+                );
+              })}
+            </Animated.View>
+
+            {/* Sport stats */}
+            {sportStats.length > 0 && (
+              <Animated.View entering={FadeInDown.delay(160).springify()} style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={[s.cardTitle, { color: colors.textPrimary }]}>🏅 By Sport</Text>
+                {sportStats.map(function(sp, i) {
                   return (
-                    <View key={od.label} style={{ marginBottom: 10 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <Text style={[s.oddsLabel, { color: colors.textSecondary }]}>{od.label}</Text>
-                        <Text style={[s.oddsWr, { color: od.winRate >= 50 ? '#4ADE80' : '#F87171' }]}>{od.winRate}% ({od.count} bets)</Text>
+                    <View key={sp.name} style={[s.listRow, i < sportStats.length-1 && { borderBottomWidth: 0.5, borderBottomColor: colors.border }]}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.listName, { color: colors.textPrimary }]}>{sp.name}</Text>
+                        <Text style={[s.listSub, { color: colors.textTertiary }]}>{sp.won}W / {sp.lost}L · {sp.bets.length} bets</Text>
                       </View>
-                      <View style={[s.oddsBarBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)' }]}>
-                        <View style={[s.oddsBarFill, { width: od.winRate + '%', backgroundColor: od.winRate >= 50 ? '#4ADE80' : '#F87171' }]} />
-                      </View>
+                      <Text style={[s.listPnl, { color: sp.pnl >= 0 ? '#1A9E4A' : '#D93025' }]}>
+                        {sp.pnl >= 0 ? '+' : ''}{formatMoney(sp.pnl, currSym)}
+                      </Text>
                     </View>
                   );
                 })}
               </Animated.View>
             )}
 
-            {/* Bookie breakdown */}
+            {/* Bookie stats */}
             {bookieStats.length > 0 && (
-              <Animated.View entering={FadeInDown.delay(160).springify()}
-                style={[s.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Text style={[s.sectionTitle, { color: colors.textPrimary }]}>Best Bookmakers</Text>
-                {bookieStats.slice(0, 5).map(function(bk) {
+              <Animated.View entering={FadeInDown.delay(200).springify()} style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={[s.cardTitle, { color: colors.textPrimary }]}>🏢 By Bookie</Text>
+                {bookieStats.map(function(bk, i) {
                   return (
-                    <View key={bk.name} style={[s.bookieRow, { borderTopColor: colors.border }]}>
-                      <Text style={[s.bookieName, { color: colors.textPrimary }]}>{bk.name}</Text>
-                      <Text style={[s.bookieBets, { color: colors.textTertiary }]}>{bk.bets.length} bets</Text>
-                      <Text style={[s.bookiePnl, { color: bk.pnl >= 0 ? '#4ADE80' : '#F87171' }]}>
+                    <View key={bk.name} style={[s.listRow, i < bookieStats.length-1 && { borderBottomWidth: 0.5, borderBottomColor: colors.border }]}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.listName, { color: colors.textPrimary }]}>{bk.name}</Text>
+                        <Text style={[s.listSub, { color: colors.textTertiary }]}>{bk.bets.length} bets · {bk.won} won</Text>
+                      </View>
+                      <Text style={[s.listPnl, { color: bk.pnl >= 0 ? '#1A9E4A' : '#D93025' }]}>
                         {bk.pnl >= 0 ? '+' : ''}{formatMoney(bk.pnl, currSym)}
                       </Text>
                     </View>
@@ -327,87 +195,114 @@ export default function StatsScreen() {
                 })}
               </Animated.View>
             )}
-          </>
+          </View>
         )}
 
-        {/* ── SPORTS TAB ── */}
-        {activeTab === 'Sports' && (
-          <Animated.View entering={FadeInDown.delay(40).springify()}>
-            {sportStats.length === 0 ? (
-              <View style={s.tabEmpty}>
-                <Text style={[s.tabEmptyTxt, { color: colors.textTertiary }]}>No sport data yet</Text>
-              </View>
-            ) : sportStats.map(function(sp) {
-              return <SportRow key={sp.name} sport={sp} maxPnl={maxSportPnl} colors={colors} isDark={isDark} currSym={currSym} />;
-            })}
-          </Animated.View>
-        )}
-
-        {/* ── CALENDAR TAB ── */}
-        {activeTab === 'Calendar' && (
-          <Animated.View entering={FadeInDown.delay(40).springify()}>
-            <CalendarView bets={bets} colors={colors} isDark={isDark} />
-          </Animated.View>
-        )}
-
-        {/* ── INSIGHTS TAB ── */}
+        {/* ── INSIGHTS ── */}
         {activeTab === 'Insights' && (
-          <Animated.View entering={FadeInDown.delay(40).springify()}>
-            {insights.map(function(ins, idx) {
+          <View style={{ gap: 10 }}>
+            <Text style={[s.tabDesc, { color: colors.textTertiary }]}>Generated from your betting patterns</Text>
+            {insights.map(function(ins, i) {
               var cfg = {
-                positive: { bg: 'rgba(74,222,128,0.07)',  border: 'rgba(74,222,128,0.22)',  color: '#4ADE80' },
-                warning:  { bg: 'rgba(252,211,77,0.07)',  border: 'rgba(252,211,77,0.22)',  color: '#FCD34D' },
-                info:     { bg: 'rgba(124,107,255,0.07)', border: 'rgba(124,107,255,0.22)', color: '#A89DFF' },
-              }[ins.type] || { bg: colors.surface, border: colors.border, color: colors.textSecondary };
+                positive: { bg: 'rgba(26,158,74,0.1)',  border: 'rgba(26,158,74,0.25)',  color: '#1A9E4A' },
+                warning:  { bg: 'rgba(224,123,0,0.1)', border: 'rgba(224,123,0,0.25)',  color: '#E07B00' },
+                info:     { bg: 'rgba(229,9,20,0.08)', border: 'rgba(229,9,20,0.2)',    color: '#E50914' },
+              }[ins.type] || { bg: colors.surfaceVariant, border: colors.border, color: colors.textSecondary };
               return (
-                <View key={idx} style={[s.insightCard, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
-                  <Text style={{ fontSize: 22 }}>{ins.icon}</Text>
+                <Animated.View key={i} entering={FadeInDown.delay(i * 70).springify()}
+                  style={[s.insightCard, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
+                  <Text style={{ fontSize: 20, flexShrink: 0 }}>{ins.icon}</Text>
                   <Text style={[s.insightTxt, { color: cfg.color }]}>{ins.text}</Text>
+                </Animated.View>
+              );
+            })}
+          </View>
+        )}
+
+        {/* ── ODDS ── */}
+        {activeTab === 'Odds' && (
+          <Animated.View entering={FadeInDown.springify()} style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[s.cardTitle, { color: colors.textPrimary }]}>Win Rate by Odds Range</Text>
+            {oddsBreakdown.map(function(r) {
+              var c = r.winRate >= 55 ? '#1A9E4A' : r.winRate >= 40 ? '#E07B00' : '#D93025';
+              return (
+                <View key={r.label} style={s.oddsRow}>
+                  <Text style={[s.oddsLbl, { color: colors.textSecondary }]}>{r.label}</Text>
+                  <View style={[s.oddsTrack, { backgroundColor: colors.surfaceVariant }]}>
+                    <View style={[s.oddsFill, { width: r.winRate+'%', backgroundColor: c }]} />
+                  </View>
+                  <Text style={[s.oddsWR, { color: c }]}>{r.winRate}%</Text>
+                  <View style={[s.oddsBadge, { backgroundColor: c+'22' }]}>
+                    <Text style={[s.oddsBadgeTxt, { color: c }]}>{r.count}</Text>
+                  </View>
                 </View>
               );
             })}
-            {tagStats.length > 0 && (
-              <View style={[s.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Text style={[s.sectionTitle, { color: colors.textPrimary }]}>Performance by Tag</Text>
-                {tagStats.map(function(tg) {
+          </Animated.View>
+        )}
+
+        {/* ── HEATMAP ── */}
+        {activeTab === 'Heatmap' && (
+          <Animated.View entering={FadeInDown.springify()} style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[s.cardTitle, { color: colors.textPrimary }]}>📅 Monthly Heatmap</Text>
+            <Heatmap dayData={dayData} currSym={currSym} />
+          </Animated.View>
+        )}
+
+        {/* ── TAGS ── */}
+        {activeTab === 'Tags' && (
+          <View>
+            {tagStats.length === 0 ? (
+              <View style={s.empty}>
+                <Text style={{ fontSize: 40, marginBottom: 12 }}>🏷️</Text>
+                <Text style={[s.emptyTitle, { color: colors.textPrimary }]}>No tags yet</Text>
+                <Text style={[s.emptySub, { color: colors.textTertiary }]}>Add #tags to bets for analytics</Text>
+              </View>
+            ) : (
+              <Animated.View entering={FadeInDown.springify()} style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={[s.cardTitle, { color: colors.textPrimary }]}>Tag Performance</Text>
+                {tagStats.map(function(td, i) {
                   return (
-                    <View key={tg.tag} style={[s.bookieRow, { borderTopColor: colors.border }]}>
-                      <Text style={[s.bookieName, { color: '#A89DFF' }]}>#{tg.tag}</Text>
-                      <Text style={[s.bookieBets, { color: colors.textTertiary }]}>{tg.count} bets</Text>
-                      <Text style={[s.bookiePnl, { color: tg.pnl >= 0 ? '#4ADE80' : '#F87171' }]}>
-                        {tg.pnl >= 0 ? '+' : ''}{formatMoney(tg.pnl, currSym)}
+                    <View key={td.tag} style={[s.listRow, i < tagStats.length-1 && { borderBottomWidth: 0.5, borderBottomColor: colors.border }]}>
+                      <View>
+                        <View style={[s.tagBadge, { backgroundColor: 'rgba(229,9,20,0.08)' }]}>
+                          <Text style={{ color: '#E50914', fontSize: 11, fontWeight: '700' }}>#{td.tag}</Text>
+                        </View>
+                        <Text style={[s.listSub, { color: colors.textTertiary, marginTop: 3 }]}>{td.won}W/{td.lost}L · {td.count} bets</Text>
+                      </View>
+                      <Text style={[s.listPnl, { color: td.pnl >= 0 ? '#1A9E4A' : '#D93025' }]}>
+                        {td.pnl >= 0 ? '+' : ''}{formatMoney(td.pnl, currSym)}
                       </Text>
                     </View>
                   );
                 })}
-              </View>
+              </Animated.View>
             )}
-          </Animated.View>
+          </View>
         )}
 
-        {/* ── BADGES TAB ── */}
+        {/* ── BADGES ── */}
         {activeTab === 'Badges' && (
-          <Animated.View entering={FadeInDown.delay(40).springify()}>
-            {/* XP progress */}
-            <View style={[s.xpCard, { backgroundColor: isDark ? '#1A1228' : '#F5F3FF', borderColor: isDark ? 'rgba(168,157,255,0.2)' : 'rgba(124,107,255,0.2)' }]}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <Text style={[s.xpLevel, { color: '#A89DFF' }]}>Level {stats.xpLevel} — {stats.levelName}</Text>
-                <Text style={[s.xpTotal, { color: '#7C6BFF' }]}>{stats.xp} XP</Text>
-              </View>
-              <Text style={[s.xpTitle, { color: colors.textPrimary }]}>{stats.xpToNext} XP to Level {stats.xpLevel + 1}</Text>
-              <View style={[s.xpBarBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)', marginTop: 12 }]}>
-                <View style={[s.xpBarFill, { width: ((stats.xp % 500) / 500 * 100) + '%' }]} />
-              </View>
-            </View>
-            {/* Badges grid */}
+          <View>
+            <Text style={[s.tabDesc, { color: colors.textTertiary }]}>{unlocked.size}/{ACHIEVEMENTS.length} unlocked</Text>
             <View style={s.badgesGrid}>
-              {ACHIEVEMENTS.map(function(ach) {
-                return <BadgeCard key={ach.id} ach={ach} unlocked={unlocked.has(ach.id)} colors={colors} isDark={isDark} />;
+              {ACHIEVEMENTS.map(function(a, i) {
+                var done = unlocked.has(a.id);
+                return (
+                  <Animated.View key={a.id} entering={FadeInDown.delay(i * 50).springify()}
+                    style={[s.badge, { backgroundColor: done ? 'rgba(229,9,20,0.08)' : colors.surfaceVariant, borderColor: done ? 'rgba(229,9,20,0.2)' : colors.border, opacity: done ? 1 : 0.4 }]}>
+                    <Text style={{ fontSize: 28, marginBottom: 6 }}>{a.icon}</Text>
+                    <Text style={[s.badgeTitle, { color: done ? '#E50914' : colors.textSecondary }]}>{a.title}</Text>
+                    <Text style={[s.badgeDesc,  { color: done ? '#E50914' : colors.textTertiary }]}>{a.desc}</Text>
+                    {done && <Text style={s.badgeCheck}>✓ UNLOCKED</Text>}
+                  </Animated.View>
+                );
               })}
             </View>
-          </Animated.View>
+          </View>
         )}
 
+        <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -415,51 +310,55 @@ export default function StatsScreen() {
 
 var s = StyleSheet.create({
   screen:    { flex: 1 },
-  topBar:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 0.5 },
-  pageTitle: { fontSize: 24, fontWeight: '800', letterSpacing: -0.6 },
-  dateBtn:   { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 0.5 },
-  dateBtnTxt:{ fontSize: 11, fontWeight: '700' },
+  topBar:    { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 0.5 },
+  pageTitle: { fontSize: 22, fontWeight: '700' },
 
-  tabScroll: { flexGrow: 0 },
-  tab:       { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, borderWidth: 0.5 },
-  tabTxt:    { fontSize: 13, fontWeight: '700' },
+  tabScroll: { flexGrow: 0, maxHeight: 54 },
+  tabRow:    { paddingLeft: 16, paddingRight: 8, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' },
+  tab:       { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, marginRight: 8, borderWidth: 0.5 },
+  tabTxt:    { fontSize: 13, fontWeight: '600', flexShrink: 1 },
 
-  chartCard: { borderRadius: 24, padding: 18, borderWidth: 0.5, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  chartTitle:{ fontSize: 14, fontWeight: '700', marginBottom: 3 },
-  chartSub:  { fontSize: 11, marginBottom: 14 },
+  content:   { padding: 16 },
 
-  statGrid:  { flexDirection: 'row', gap: 8, justifyContent: 'space-between', marginBottom: 16 },
+  // Equal 4-card row
+  cardRow:   { flexDirection: 'row', justifyContent: 'space-between' },
 
-  sectionCard: { borderRadius: 22, padding: 18, borderWidth: 0.5, marginBottom: 16 },
-  sectionTitle:{ fontSize: 15, fontWeight: '700', marginBottom: 14 },
+  card:      { borderRadius: 20, padding: 16, borderWidth: 0.5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  cardTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4, color: '#fff' },
+  cardSub:   { fontSize: 12, marginBottom: 14 },
 
-  oddsLabel:  { fontSize: 12, fontWeight: '600' },
-  oddsWr:     { fontSize: 12, fontWeight: '700' },
-  oddsBarBg:  { borderRadius: 4, height: 6, overflow: 'hidden' },
-  oddsBarFill:{ height: '100%', borderRadius: 4 },
+  tabDesc:   { fontSize: 13, fontStyle: 'italic', marginBottom: 14 },
 
-  bookieRow:  { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderTopWidth: 0.5 },
-  bookieName: { flex: 1, fontSize: 13, fontWeight: '700' },
-  bookieBets: { fontSize: 11, fontWeight: '600' },
-  bookiePnl:  { fontSize: 13, fontWeight: '800', minWidth: 60, textAlign: 'right' },
+  breakLbl:   { fontSize: 13, fontWeight: '600' },
+  breakCount: { fontSize: 13, fontWeight: '800' },
+  barTrack:   { height: 7, borderRadius: 6, overflow: 'hidden' },
+  barFill:    { height: '100%', borderRadius: 6 },
 
-  insightCard:{ flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, padding: 14, borderWidth: 0.5, marginBottom: 8 },
-  insightTxt: { flex: 1, fontSize: 13, fontWeight: '600', lineHeight: 19 },
+  listRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
+  listName:  { fontSize: 14, fontWeight: '700' },
+  listSub:   { fontSize: 11, marginTop: 2 },
+  listPnl:   { fontSize: 15, fontWeight: '900' },
 
-  xpCard:    { borderRadius: 22, padding: 18, borderWidth: 0.5, marginBottom: 16 },
-  xpLevel:   { fontSize: 10, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
-  xpTotal:   { fontSize: 14, fontWeight: '800', letterSpacing: -0.3 },
-  xpTitle:   { fontSize: 15, fontWeight: '700', marginTop: 2 },
-  xpBarBg:   { borderRadius: 999, height: 8, overflow: 'hidden' },
-  xpBarFill: { height: '100%', borderRadius: 999, backgroundColor: '#7C6BFF' },
+  insightCard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, padding: 13, borderWidth: 0.5 },
+  insightTxt:  { flex: 1, fontSize: 13, fontWeight: '600', lineHeight: 19 },
 
-  badgesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  oddsRow:     { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  oddsLbl:     { width: 58, fontSize: 11, fontWeight: '700' },
+  oddsTrack:   { flex: 1, height: 8, borderRadius: 6, overflow: 'hidden' },
+  oddsFill:    { height: '100%', borderRadius: 6 },
+  oddsWR:      { width: 32, fontSize: 11, fontWeight: '800', textAlign: 'right' },
+  oddsBadge:   { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999 },
+  oddsBadgeTxt:{ fontSize: 10, fontWeight: '700' },
 
-  tabEmpty:  { paddingVertical: 60, alignItems: 'center' },
-  tabEmptyTxt:{ fontSize: 14, fontWeight: '600' },
+  tagBadge:  { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start' },
 
-  emptyWrap:  { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  emptyIllus: { fontSize: 64, marginBottom: 18, opacity: 0.75 },
-  emptyTitle: { fontSize: 20, fontWeight: '800', marginBottom: 10, letterSpacing: -0.4 },
-  emptySub:   { fontSize: 14, textAlign: 'center', lineHeight: 22 },
+  badgesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  badge:      { width: '47%', borderRadius: 20, padding: 16, alignItems: 'center', borderWidth: 0.5 },
+  badgeTitle: { fontSize: 13, fontWeight: '800', textAlign: 'center', marginBottom: 2 },
+  badgeDesc:  { fontSize: 11, textAlign: 'center' },
+  badgeCheck: { fontSize: 9, fontWeight: '800', marginTop: 4, color: '#E50914', letterSpacing: 1 },
+
+  empty:      { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', marginBottom: 6 },
+  emptySub:   { fontSize: 14, textAlign: 'center' },
 });
