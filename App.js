@@ -18,6 +18,7 @@ import { getItem, setItem, KEYS, migrateIfNeeded } from './storage';
 import HomeScreen from './HomeScreen';
 import FloatingMenu from './FloatingMenu';
 import AddBetModal from './AddBetModal';
+import QuickBet from './QuickBet';
 import { ToastProvider } from './Toast';
 import BetsScreen from './BetsScreen';
 import StatsScreen from './StatsScreen';
@@ -213,7 +214,9 @@ function GlobalFAB({ currentTab }) {
   const pendingBets = bets.filter(b => b.status === 'Pending');
 
   const handleAction = (id) => {
-    if (id === 'add') {
+    if (id === 'quick') {
+      setQuickVisible(true);
+    } else if (id === 'add') {
       setModalVisible(true);
     } else if (id === 'won' || id === 'lost') {
       const status = id === 'won' ? 'Won' : 'Lost';
@@ -262,6 +265,13 @@ function GlobalFAB({ currentTab }) {
         hasPendingBets={pendingBets.length > 0}
         isProfit={isProfit}
         totalPnL={stats.totalPnL}
+      />
+      <QuickBet
+        visible={quickVisible}
+        onClose={() => setQuickVisible(false)}
+        onSave={addBet}
+        currSym="₹"
+        suggestStake={stats.suggestedStake}
       />
       <AddBetModal
         visible={modalVisible}
