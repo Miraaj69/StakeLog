@@ -151,35 +151,45 @@ const TABS = [
   { label:'Settings', emoji:'⚙️' },
 ];
 
+// Each tab item is its own component so hooks are called at the top level (Rules of Hooks)
+function TabItem({ route, idx, focused, navigation }) {
+  const { colors } = useTheme();
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const onPress = () => {
+    scale.value = withSpring(0.82, { damping: 12 }, () => { scale.value = withSpring(1, { damping: 14 }); });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!focused) navigation.navigate(route.name);
+  };
+  return (
+    <Pressable key={route.name} onPress={onPress} style={tabS.tab}>
+      <Animated.View style={[tabS.inner, animStyle]}>
+        <Text style={[tabS.emoji, { opacity: focused ? 1 : 0.55 }]}>{TABS[idx].emoji}</Text>
+        <Text style={[tabS.label, {
+          color: focused ? '#E50914' : '#9CA3AF',
+          fontWeight: focused ? '700' : '500',
+        }]}>
+          {TABS[idx].label}
+        </Text>
+        {focused && <View style={tabS.indicator} />}
+      </Animated.View>
+    </Pressable>
+  );
+}
+
 function CustomTabBar({ state, navigation }) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   return (
     <View style={[tabS.bar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-      {state.routes.map((route, idx) => {
-        const focused = state.index === idx;
-        const scale = useSharedValue(1);
-        const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-        const onPress = () => {
-          scale.value = withSpring(0.82, { damping: 12 }, () => { scale.value = withSpring(1, { damping: 14 }); });
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          if (!focused) navigation.navigate(route.name);
-        };
-        return (
-          <Pressable key={route.name} onPress={onPress} style={tabS.tab}>
-            <Animated.View style={[tabS.inner, animStyle]}>
-              <Text style={[tabS.emoji, { opacity: focused ? 1 : 0.55 }]}>{TABS[idx].emoji}</Text>
-              <Text style={[tabS.label, {
-                color: focused ? '#E50914' : '#9CA3AF',
-                fontWeight: focused ? '700' : '500',
-              }]}>
-                {TABS[idx].label}
-              </Text>
-              {/* Active indicator — thin underline dot */}
-              {focused && <View style={tabS.indicator} />}
-            </Animated.View>
-          </Pressable>
-        );
-      })}
+      {state.routes.map((route, idx) => (
+        <TabItem
+          key={route.name}
+          route={route}
+          idx={idx}
+          focused={state.index === idx}
+          navigation={navigation}
+        />
+      ))}
     </View>
   );
 }
@@ -207,6 +217,7 @@ function GlobalFAB({ currentTab }) {
   const duplicateBet = useStore(s => s.duplicateBet);
   const addBet = useStore(s => s.addBet);
   const [modalVisible, setModalVisible] = React.useState(false);
+  const [quickVisible, setQuickVisible] = React.useState(false);
   const stats = useStats();
 
   if (currentTab === 'Settings') return null;
