@@ -350,7 +350,7 @@ function AppContent() {
   }, []);
 
   if (onboarded === null) return <View style={{ flex:1, backgroundColor: colors.background }} />;
-  if (!onboarded) return <OnboardingScreen onDone={async () => { await setItem(KEYS.ONBOARDED, true); setOnboarded(true); }} />;
+  if (!onboarded) return <Onboarding onComplete={() => setOnboarded(true)} />;
   if (pinEnabled && savedPin && !pinUnlocked && pinMode !== 'set') return <PinScreen mode="enter" savedPin={savedPin} onSuccess={() => setPinUnlocked(true)} onSetPin={() => {}} />;
   if (pinMode === 'set') return (
     <PinScreen mode="set" savedPin="" onSuccess={() => {}} onSetPin={async (pin) => {
