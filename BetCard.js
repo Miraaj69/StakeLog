@@ -1,4 +1,4 @@
-// BetCard.js — Phase 2: Premium hierarchy + swipe + micro-interactions
+// BetCard.js — Premium redesign: crisp hierarchy, smooth swipe, micro-animations
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Alert, Animated as RNAnimated } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
@@ -11,100 +11,121 @@ import { useTheme } from './useTheme';
 import { formatMoney } from './calculations';
 
 function calcPnL(bet) {
-  if (bet.status === 'Won')  return parseFloat(bet.stake) * (parseFloat(bet.odds) - 1);
+  if (bet.status === 'Won') return parseFloat(bet.stake) * (parseFloat(bet.odds) - 1);
   if (bet.status === 'Lost') return -parseFloat(bet.stake);
   return 0;
 }
 
-var STATUS_CFG = {
-  Won:     { bg: '#E8F8EE', border: '#A7DFB9', color: '#1A9E4A', dot: '#1A9E4A', label: '✓  Won'     },
-  Lost:    { bg: '#FDECEA', border: '#F5B8B2', color: '#D93025', dot: '#D93025', label: '✕  Lost'    },
-  Pending: { bg: '#FFF8E7', border: '#FFD980', color: '#E07B00', dot: '#E07B00', label: '◷  Pending' },
-  Void:    { bg: '#F5F5F5', border: '#DDD',    color: '#888',    dot: '#CCC',    label: '—  Void'    },
+const STATUS_CFG = {
+  Won: { accent: '#00C853', bg: 'rgba(0,200,83,0.08)', border: 'rgba(0,200,83,0.2)', color: '#00C853', label: 'Won' },
+  Lost: { accent: '#E53935', bg: 'rgba(229,57,53,0.08)', border: 'rgba(229,57,53,0.2)', color: '#E53935', label: 'Lost' },
+  Pending: { accent: '#FF6F00', bg: 'rgba(255,111,0,0.08)', border: 'rgba(255,111,0,0.2)', color: '#FF6F00', label: 'Pending' },
+  Void: { accent: '#757575', bg: 'rgba(117,117,117,0.07)', border: 'rgba(117,117,117,0.18)', color: '#757575', label: 'Void' },
 };
 
-var SWIPE_THRESHOLD = 72;
-var MAX_SWIPE = 110;
+const SWIPE_THRESHOLD = 70;
+const MAX_SWIPE = 105;
 
-export default function BetCard({ bet, onEdit, onDelete, onWon, onLost, onDuplicate, hidden, currSym, bulkMode, selected, onSelect, onSlip }) {
+export default function BetCard({ bet, onEdit, onDelete, onWon, onLost, onDuplicate, hidden, currSym, bulkMode, selected, onSelect }) {
   currSym = currSym || '₹';
-  var { colors } = useTheme();
-  var [expanded, setExpanded] = useState(false);
-  var pressScale = useState(new RNAnimated.Value(1))[0];
+  const { colors, isDark } = useTheme();
+  const [expanded, setExpanded] = useState(false);
+  const pressScale = useState(new RNAnimated.Value(1))[0];
 
-  var pnl = calcPnL(bet);
-  var isPending = bet.status === 'Pending';
-  var cfg = STATUS_CFG[bet.status] || STATUS_CFG.Void;
+  const pnl = calcPnL(bet);
+  const isPending = bet.status === 'Pending';
+  const cfg = STATUS_CFG[bet.status] || STATUS_CFG.Void;
 
-  var tx = useSharedValue(0);
-  var cardOp = useSharedValue(1);
+  const tx = useSharedValue(0);
+  const cardOp = useSharedValue(1);
 
-  var gesture = useAnimatedGestureHandler({
-    onStart: function(_, ctx) { ctx.sx = tx.value; },
-    onActive: function(e, ctx) {
-      var nx = ctx.sx + e.translationX;
+  const gesture = useAnimatedGestureHandler({
+    onStart: (_, ctx) => { ctx.sx = tx.value; },
+    onActive: (e, ctx) => {
+      const nx = ctx.sx + e.translationX;
       if (nx < 0) tx.value = Math.max(nx, -MAX_SWIPE);
       else if (isPending) tx.value = Math.min(nx, MAX_SWIPE);
     },
-    onEnd: function() {
+    onEnd: () => {
       if (tx.value < -SWIPE_THRESHOLD) {
         runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
-        cardOp.value = withTiming(0, { duration: 200 });
-        tx.value = withTiming(-MAX_SWIPE, { duration: 180 });
+        cardOp.value = withTiming(0, { duration: 180 });
+        tx.value = withTiming(-MAX_SWIPE, { duration: 160 });
         runOnJS(onDelete)(bet.id);
       } else if (tx.value > SWIPE_THRESHOLD && isPending) {
         runOnJS(Haptics.notificationAsync)(Haptics.NotificationFeedbackType.Success);
         runOnJS(onWon)(bet.id);
-        tx.value = withSpring(0, { damping: 18 });
+        tx.value = withSpring(0, { damping: 20 });
       } else {
-        tx.value = withSpring(0, { damping: 18 });
+        tx.value = withSpring(0, { damping: 20, stiffness: 220 });
       }
     },
   });
 
-  var cardStyle = useAnimatedStyle(function() {
-    return { transform: [{ translateX: tx.value }], opacity: cardOp.value };
-  });
-  var rightReveal = useAnimatedStyle(function() {
-    return { opacity: interpolate(tx.value, [-MAX_SWIPE, -20], [1, 0], Extrapolation.CLAMP) };
-  });
-  var leftReveal = useAnimatedStyle(function() {
-    return { opacity: interpolate(tx.value, [20, MAX_SWIPE], [0, 1], Extrapolation.CLAMP) };
-  });
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: tx.value }],
+    opacity: cardOp.value,
+  }));
 
-  // Card press scale micro-interaction
-  function onPressIn() { RNAnimated.spring(pressScale, { toValue: 0.97, useNativeDriver: true, damping: 14 }).start(); }
+  const rightReveal = useAnimatedStyle(() => ({
+    opacity: interpolate(tx.value, [-MAX_SWIPE, -28], [1, 0], Extrapolation.CLAMP),
+    transform: [{ scale: interpolate(tx.value, [-MAX_SWIPE, -28], [1, 0.8], Extrapolation.CLAMP) }],
+  }));
+
+  const leftReveal = useAnimatedStyle(() => ({
+    opacity: interpolate(tx.value, [28, MAX_SWIPE], [0, 1], Extrapolation.CLAMP),
+    transform: [{ scale: interpolate(tx.value, [28, MAX_SWIPE], [0.8, 1], Extrapolation.CLAMP) }],
+  }));
+
+  function onPressIn() { RNAnimated.spring(pressScale, { toValue: 0.97, useNativeDriver: true, damping: 16 }).start(); }
   function onPressOut() { RNAnimated.spring(pressScale, { toValue: 1, useNativeDriver: true, damping: 14 }).start(); }
+
+  const potentialWin = isPending && parseFloat(bet.stake) && parseFloat(bet.odds) > 1
+    ? parseFloat(bet.stake) * (parseFloat(bet.odds) - 1)
+    : null;
 
   return (
     <View style={st.wrap}>
-      <Animated.View style={[st.swipeBg, st.swipeBgRight, rightReveal]}>
-        <Text style={{ fontSize: 20, color: '#fff' }}>🗑</Text>
-        <Text style={{ fontSize: 10, color: '#fff', fontWeight: '700', marginTop: 2 }}>Delete</Text>
+      {/* Swipe backgrounds */}
+      <Animated.View style={[st.swipeBg, st.swipeRight, rightReveal]}>
+        <Text style={{ fontSize: 22 }}>🗑</Text>
+        <Text style={st.swipeLabel}>Delete</Text>
       </Animated.View>
       {isPending && (
-        <Animated.View style={[st.swipeBg, st.swipeBgLeft, leftReveal]}>
-          <Text style={{ fontSize: 20, color: '#fff' }}>✓</Text>
-          <Text style={{ fontSize: 10, color: '#fff', fontWeight: '700', marginTop: 2 }}>Won</Text>
+        <Animated.View style={[st.swipeBg, st.swipeLeft, leftReveal]}>
+          <Text style={{ fontSize: 22 }}>✓</Text>
+          <Text style={st.swipeLabel}>Won</Text>
         </Animated.View>
       )}
 
-      <PanGestureHandler onGestureEvent={gesture} activeOffsetX={[-10, 10]}>
-        <Animated.View style={[cardStyle]}>
+      <PanGestureHandler onGestureEvent={gesture} activeOffsetX={[-12, 12]}>
+        <Animated.View style={cardStyle}>
           <RNAnimated.View style={{ transform: [{ scale: pressScale }] }}>
-            <Pressable onPressIn={onPressIn} onPressOut={onPressOut} onPress={() => setExpanded(function(e) { return !e; })}
-              style={[st.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              {/* Left accent */}
-              <View style={[st.accent, { backgroundColor: cfg.dot }]} />
+            <Pressable
+              onPressIn={onPressIn}
+              onPressOut={onPressOut}
+              onPress={() => setExpanded(e => !e)}
+              style={[st.card, {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              }]}
+            >
+              {/* Left accent bar */}
+              <View style={[st.accent, { backgroundColor: cfg.accent }]} />
 
               <View style={st.body}>
-                {/* Row 1: Event + Status */}
+                {/* Row 1: Event name + Status badge */}
                 <View style={st.r1}>
-                  <View style={st.titleWrap}>
+                  <View style={st.titleGroup}>
                     {bulkMode && (
-                      <Pressable onPress={() => onSelect(bet.id)}
-                        style={[st.checkbox, { borderColor: selected?'#E50914':colors.border, backgroundColor: selected?'#E50914':'transparent' }]}>
-                        {selected && <Text style={{ color: '#fff', fontSize: 9, fontWeight: '900' }}>✓</Text>}
+                      <Pressable
+                        onPress={() => onSelect(bet.id)}
+                        style={[st.checkbox, {
+                          borderColor: selected ? '#E50914' : colors.border,
+                          backgroundColor: selected ? '#E50914' : 'transparent',
+                        }]}
+                      >
+                        {selected && <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>✓</Text>}
                       </Pressable>
                     )}
                     <View style={{ flex: 1 }}>
@@ -113,35 +134,38 @@ export default function BetCard({ bet, onEdit, onDelete, onWon, onLost, onDuplic
                     </View>
                   </View>
                   <View style={[st.statusBadge, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
+                    <View style={[st.statusDot, { backgroundColor: cfg.accent }]} />
                     <Text style={[st.statusTxt, { color: cfg.color }]}>{cfg.label}</Text>
                   </View>
                 </View>
 
-                {/* Row 2: Numbers — highlight */}
-                <View style={[st.numRow, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
-                  <View style={st.numItem}>
-                    <Text style={[st.numLbl, { color: colors.textTertiary }]}>STAKE</Text>
-                    <Text style={[st.numVal, { color: colors.textPrimary }]}>{hidden?'••••':formatMoney(parseFloat(bet.stake||0),currSym)}</Text>
+                {/* Row 2: Numbers strip */}
+                <View style={[st.numStrip, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderColor: colors.border }]}>
+                  <View style={st.numCell}>
+                    <Text style={[st.numLbl, { color: colors.textTertiary }]}>Stake</Text>
+                    <Text style={[st.numVal, { color: colors.textPrimary }]}>
+                      {hidden ? '••••' : formatMoney(parseFloat(bet.stake || 0), currSym)}
+                    </Text>
                   </View>
                   <View style={[st.numDiv, { backgroundColor: colors.border }]} />
-                  <View style={st.numItem}>
-                    <Text style={[st.numLbl, { color: colors.textTertiary }]}>ODDS</Text>
-                    <Text style={[st.numVal, { color: colors.textPrimary }]}>{parseFloat(bet.odds||0).toFixed(2)}×</Text>
+                  <View style={st.numCell}>
+                    <Text style={[st.numLbl, { color: colors.textTertiary }]}>Odds</Text>
+                    <Text style={[st.numVal, { color: colors.textPrimary }]}>{parseFloat(bet.odds || 0).toFixed(2)}×</Text>
                   </View>
                   <View style={[st.numDiv, { backgroundColor: colors.border }]} />
-                  <View style={st.numItem}>
+                  <View style={st.numCell}>
                     {isPending ? (
                       <>
-                        <Text style={[st.numLbl, { color: colors.textTertiary }]}>TO WIN</Text>
-                        <Text style={[st.numVal, { color: '#1A9E4A', fontWeight: '800' }]}>
-                          {hidden?'••':formatMoney(parseFloat(bet.stake||0)*(parseFloat(bet.odds||1)-1),currSym)}
+                        <Text style={[st.numLbl, { color: colors.textTertiary }]}>To Win</Text>
+                        <Text style={[st.numValAccent, { color: '#00C853' }]}>
+                          {hidden ? '••' : formatMoney(parseFloat(bet.stake || 0) * (parseFloat(bet.odds || 1) - 1), currSym)}
                         </Text>
                       </>
                     ) : (
                       <>
                         <Text style={[st.numLbl, { color: colors.textTertiary }]}>P&L</Text>
-                        <Text style={[st.pnl, { color: pnl>=0?'#1A9E4A':'#D93025' }]}>
-                          {hidden?'••':(pnl>=0?'+':'')+formatMoney(pnl,currSym)}
+                        <Text style={[st.numValAccent, { color: pnl >= 0 ? '#00C853' : '#E53935' }]}>
+                          {hidden ? '••' : (pnl >= 0 ? '+' : '') + formatMoney(pnl, currSym)}
                         </Text>
                       </>
                     )}
@@ -150,55 +174,64 @@ export default function BetCard({ bet, onEdit, onDelete, onWon, onLost, onDuplic
 
                 {/* Row 3: Meta tags */}
                 <View style={st.metaRow}>
-                  {[bet.bookie, bet.sport, bet.date].filter(Boolean).map(function(t) {
-                    return (
-                      <View key={t} style={[st.tag, { backgroundColor: colors.surfaceVariant }]}>
-                        <Text style={[st.tagTxt, { color: colors.textTertiary }]}>{t}</Text>
-                      </View>
-                    );
-                  })}
-                  {(bet.tags||[]).map(function(tag) {
-                    return (
-                      <View key={tag} style={[st.tag, { backgroundColor: 'rgba(229,9,20,0.08)' }]}>
-                        <Text style={[st.tagTxt, { color: '#E50914' }]}>#{tag}</Text>
-                      </View>
-                    );
-                  })}
+                  {[bet.bookie, bet.sport, bet.date].filter(Boolean).map(tag => (
+                    <View key={tag} style={[st.metaTag, { backgroundColor: colors.surfaceVariant }]}>
+                      <Text style={[st.metaTagTxt, { color: colors.textTertiary }]}>{tag}</Text>
+                    </View>
+                  ))}
+                  {(bet.tags || []).map(tag => (
+                    <View key={tag} style={[st.metaTag, { backgroundColor: 'rgba(229,9,20,0.07)' }]}>
+                      <Text style={[st.metaTagTxt, { color: '#E50914' }]}>#{tag}</Text>
+                    </View>
+                  ))}
                 </View>
 
                 {/* Expanded notes */}
                 {expanded && bet.notes ? (
-                  <View style={[st.notes, { borderTopColor: colors.border }]}>
+                  <View style={[st.notesBox, { borderTopColor: colors.border }]}>
                     <Text style={[st.notesTxt, { color: colors.textSecondary }]}>📝 {bet.notes}</Text>
                   </View>
                 ) : null}
 
-                {/* Actions — minimal */}
+                {/* Action row */}
                 {!bulkMode && (
                   <View style={st.actions}>
                     {isPending && (
                       <>
-                        <Pressable onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onWon(bet.id); }}
-                          style={[st.actionBtn, { backgroundColor: '#E8F8EE', flex: 1 }]}>
-                          <Text style={{ color: '#1A9E4A', fontWeight: '700', fontSize: 13 }}>✓  Won</Text>
+                        <Pressable
+                          onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onWon(bet.id); }}
+                          style={[st.actionBtn, { backgroundColor: 'rgba(0,200,83,0.1)', flex: 1 }]}
+                        >
+                          <Text style={{ color: '#00C853', fontWeight: '700', fontSize: 13 }}>✓  Won</Text>
                         </Pressable>
-                        <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onLost(bet.id); }}
-                          style={[st.actionBtn, { backgroundColor: '#FDECEA', flex: 1 }]}>
-                          <Text style={{ color: '#D93025', fontWeight: '700', fontSize: 13 }}>✕  Lost</Text>
+                        <Pressable
+                          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onLost(bet.id); }}
+                          style={[st.actionBtn, { backgroundColor: 'rgba(229,57,53,0.1)', flex: 1 }]}
+                        >
+                          <Text style={{ color: '#E53935', fontWeight: '700', fontSize: 13 }}>✕  Lost</Text>
                         </Pressable>
                       </>
                     )}
-                    <Pressable onPress={() => onEdit(bet)} style={[st.iconBtn, { backgroundColor: colors.surfaceVariant }]}>
+                    <Pressable
+                      onPress={() => onEdit(bet)}
+                      style={[st.iconBtn, { backgroundColor: colors.surfaceVariant }]}
+                    >
                       <Text style={{ fontSize: 13 }}>✏️</Text>
                     </Pressable>
-                    <Pressable onPress={() => onDuplicate(bet)} style={[st.iconBtn, { backgroundColor: colors.surfaceVariant }]}>
+                    <Pressable
+                      onPress={() => onDuplicate(bet)}
+                      style={[st.iconBtn, { backgroundColor: colors.surfaceVariant }]}
+                    >
                       <Text style={{ fontSize: 13 }}>⎘</Text>
                     </Pressable>
-                    <Pressable onPress={() => Alert.alert('Delete Bet','This cannot be undone.',[
-                      {text:'Cancel',style:'cancel'},
-                      {text:'Delete',style:'destructive',onPress:()=>onDelete(bet.id)},
-                    ])} style={[st.iconBtn, { backgroundColor: '#FDECEA' }]}>
-                      <Text style={{ fontSize: 13, color: '#D93025' }}>🗑</Text>
+                    <Pressable
+                      onPress={() => Alert.alert('Delete Bet', 'This cannot be undone.', [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Delete', style: 'destructive', onPress: () => onDelete(bet.id) },
+                      ])}
+                      style={[st.iconBtn, { backgroundColor: 'rgba(229,57,53,0.09)' }]}
+                    >
+                      <Text style={{ fontSize: 13, color: '#E53935' }}>🗑</Text>
                     </Pressable>
                   </View>
                 )}
@@ -211,33 +244,60 @@ export default function BetCard({ bet, onEdit, onDelete, onWon, onLost, onDuplic
   );
 }
 
-var st = StyleSheet.create({
-  wrap:        { marginBottom: 8, position: 'relative' },
-  swipeBg:     { position: 'absolute', top: 0, bottom: 0, width: 88, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  swipeBgRight:{ right: 0, backgroundColor: '#D93025' },
-  swipeBgLeft: { left:  0, backgroundColor: '#1A9E4A' },
-  card:        { borderRadius: 20, flexDirection: 'row', overflow: 'hidden', borderWidth: 0.5, shadowColor: '#000', shadowOffset:{width:0,height:2}, shadowOpacity:0.06, shadowRadius:10, elevation:3 },
-  accent:      { width: 4, flexShrink: 0 },
-  body:        { flex: 1, padding: 14 },
-  r1:          { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
-  titleWrap:   { flex: 1, flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  checkbox:    { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginTop: 2, flexShrink: 0 },
-  event:       { fontSize: 15, fontWeight: '700', letterSpacing: -0.3, lineHeight: 21, marginBottom: 3 },
-  betDesc:     { fontSize: 12, fontWeight: '500', lineHeight: 17 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 0.5, flexShrink: 0 },
-  statusTxt:   { fontSize: 11, fontWeight: '700' },
-  numRow:      { flexDirection: 'row', borderRadius: 12, borderWidth: 0.5, overflow: 'hidden', marginBottom: 10 },
-  numItem:     { flex: 1, paddingVertical: 10, alignItems: 'center' },
-  numDiv:      { width: 0.5 },
-  numLbl:      { fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 },
-  numVal:      { fontSize: 14, fontWeight: '700', letterSpacing: -0.3 },
-  pnl:         { fontSize: 16, fontWeight: '900', letterSpacing: -0.5 },
-  metaRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 10 },
-  tag:         { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7 },
-  tagTxt:      { fontSize: 10, fontWeight: '600' },
-  notes:       { borderTopWidth: 0.5, paddingTop: 10, marginBottom: 6 },
-  notesTxt:    { fontSize: 12, lineHeight: 18, fontStyle: 'italic' },
-  actions:     { flexDirection: 'row', gap: 7, alignItems: 'center' },
-  actionBtn:   { borderRadius: 999, paddingVertical: 9, alignItems: 'center', justifyContent: 'center' },
-  iconBtn:     { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+const st = StyleSheet.create({
+  wrap: { marginBottom: 10, position: 'relative' },
+
+  // Swipe reveal layers
+  swipeBg: {
+    position: 'absolute', top: 0, bottom: 0,
+    width: 90, borderRadius: 22,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  swipeRight: { right: 0, backgroundColor: '#E53935' },
+  swipeLeft: { left: 0, backgroundColor: '#00C853' },
+  swipeLabel: { fontSize: 10, color: '#fff', fontWeight: '700', marginTop: 3 },
+
+  // Card
+  card: {
+    borderRadius: 22, flexDirection: 'row', overflow: 'hidden',
+    borderWidth: 0.5,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07, shadowRadius: 12, elevation: 3,
+  },
+  accent: { width: 3.5, flexShrink: 0 },
+  body: { flex: 1, padding: 14 },
+
+  // R1
+  r1: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 11 },
+  titleGroup: { flex: 1, flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+  checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginTop: 2, flexShrink: 0 },
+  event: { fontSize: 14, fontWeight: '700', letterSpacing: -0.2, lineHeight: 20, marginBottom: 3 },
+  betDesc: { fontSize: 11, fontWeight: '500', lineHeight: 16 },
+
+  // Status
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999, borderWidth: 0.5, flexShrink: 0 },
+  statusDot: { width: 5, height: 5, borderRadius: 2.5 },
+  statusTxt: { fontSize: 11, fontWeight: '700' },
+
+  // Numbers
+  numStrip: { flexDirection: 'row', borderRadius: 12, borderWidth: 0.5, overflow: 'hidden', marginBottom: 10 },
+  numCell: { flex: 1, paddingVertical: 9, alignItems: 'center' },
+  numDiv: { width: 0.5 },
+  numLbl: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+  numVal: { fontSize: 13, fontWeight: '700', letterSpacing: -0.2 },
+  numValAccent: { fontSize: 15, fontWeight: '800', letterSpacing: -0.4 },
+
+  // Meta tags
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 10 },
+  metaTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  metaTagTxt: { fontSize: 10, fontWeight: '600' },
+
+  // Notes
+  notesBox: { borderTopWidth: 0.5, paddingTop: 10, marginBottom: 8 },
+  notesTxt: { fontSize: 12, lineHeight: 18, fontStyle: 'italic' },
+
+  // Actions
+  actions: { flexDirection: 'row', gap: 6, alignItems: 'center' },
+  actionBtn: { borderRadius: 999, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
+  iconBtn: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });
