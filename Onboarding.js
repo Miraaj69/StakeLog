@@ -6,7 +6,17 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
+
+// Safe wrapper — if native module fails, falls back to plain View
+function LinearGradient({ colors: gColors, style, start, end, children }) {
+  try {
+    return <ExpoLinearGradient colors={gColors} style={style} start={start} end={end}>{children}</ExpoLinearGradient>;
+  } catch(e) {
+    var bg = (gColors && gColors[0]) || '#0f0f23';
+    return <View style={[style, { backgroundColor: bg }]}>{children}</View>;
+  }
+}
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
   interpolate, FadeIn, FadeInDown, SlideInRight,

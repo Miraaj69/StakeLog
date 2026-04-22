@@ -5,7 +5,11 @@ import {
   Animated as RNAnimated, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
+function LinearGradient(props) {
+  try { return <ExpoLinearGradient {...props} />; }
+  catch(e) { return <View style={[props.style, { backgroundColor: (props.colors && props.colors[0]) || 'transparent' }]}>{props.children}</View>; }
+}
 import * as Animated from 'react-native-reanimated';
 import { FadeInDown, FadeIn } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';

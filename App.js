@@ -1,6 +1,6 @@
 // App.js
 import 'react-native-gesture-handler';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component } from 'react';
 import { View, Text, StyleSheet, Pressable, StatusBar, Platform, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -328,6 +328,39 @@ function MainTabs() {
 }
 
 
+// ── Error Boundary ─────────────────────────────────────────────
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.warn('App Error:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex:1, backgroundColor:'#0f0f23', alignItems:'center', justifyContent:'center', padding:32 }}>
+          <Text style={{ fontSize:40, marginBottom:16 }}>⚠️</Text>
+          <Text style={{ color:'#fff', fontSize:20, fontWeight:'700', textAlign:'center', marginBottom:12 }}>Something went wrong</Text>
+          <Text style={{ color:'rgba(255,255,255,0.5)', fontSize:14, textAlign:'center', marginBottom:32 }}>
+            {String(this.state.error?.message || 'Unknown error')}
+          </Text>
+          <Pressable
+            onPress={() => this.setState({ hasError: false, error: null })}
+            style={{ backgroundColor:'#E50914', paddingHorizontal:28, paddingVertical:14, borderRadius:999 }}>
+            <Text style={{ color:'#fff', fontWeight:'700', fontSize:15 }}>Try Again</Text>
+          </Pressable>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function AppContent() {
   const { colors, isDark } = useTheme();
   const init = useStore(s => s.init);
@@ -338,18 +371,33 @@ function AppContent() {
   const [pinMode, setPinMode] = useState(null);
 
   useEffect(() => {
-    // Init Zustand store from AsyncStorage
-    migrateIfNeeded();
-    init();
-    // Load auth state separately
-    Promise.all([
-      getItem(KEYS.ONBOARDED, false),
-      getItem(KEYS.PIN_ENABLED, false),
-      getItem(KEYS.PIN, ''),
-    ]).then(([ob, pe, p]) => { setOnboarded(ob); setPinEnabled(pe); setSavedPin(p); });
+    async function bootstrap() {
+      try {
+        await migrateIfNeeded();
+        await init();
+        const [ob, pe, p] = await Promise.all([
+          getItem(KEYS.ONBOARDED, false),
+          getItem(KEYS.PIN_ENABLED, false),
+          getItem(KEYS.PIN, ''),
+        ]);
+        setOnboarded(ob);
+        setPinEnabled(pe);
+        setSavedPin(p);
+      } catch (e) {
+        console.warn('Bootstrap error:', e);
+        // Still show app even if init fails
+        setOnboarded(false);
+      }
+    }
+    bootstrap();
   }, []);
 
-  if (onboarded === null) return <View style={{ flex:1, backgroundColor: colors.background }} />;
+  if (onboarded === null) return (
+    <View style={{ flex:1, backgroundColor: colors.background, alignItems:'center', justifyContent:'center' }}>
+      <Text style={{ fontSize:32, marginBottom:12 }}>🎯</Text>
+      <Text style={{ color: colors.textSecondary || '#888', fontSize:14 }}>Loading...</Text>
+    </View>
+  );
   if (!onboarded) return <Onboarding onComplete={() => setOnboarded(true)} />;
   if (pinEnabled && savedPin && !pinUnlocked && pinMode !== 'set') return <PinScreen mode="enter" savedPin={savedPin} onSuccess={() => setPinUnlocked(true)} onSetPin={() => {}} />;
   if (pinMode === 'set') return (
@@ -369,15 +417,17 @@ function AppContent() {
 
 function App() {
   return (
-    <GestureHandlerRootView style={{ flex:1 }}>
-      <SafeAreaProvider>
-        <ThemeProvider>
-          <ToastProvider>
-            <AppContent />
-          </ToastProvider>
-        </ThemeProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex:1 }}>
+        <SafeAreaProvider>
+          <ThemeProvider>
+            <ToastProvider>
+              <AppContent />
+            </ToastProvider>
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
 
