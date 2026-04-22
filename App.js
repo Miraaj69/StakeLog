@@ -24,6 +24,7 @@ import BetsScreen from './BetsScreen';
 import StatsScreen from './StatsScreen';
 import BankrollScreen from './BankrollScreen';
 import SettingsScreen from './SettingsScreen';
+import Onboarding from './Onboarding'; // ✅ FIXED: was missing
 
 const Tab = createBottomTabNavigator();
 
@@ -93,7 +94,7 @@ const pinS = StyleSheet.create({
   keyTxt: { fontSize:22, fontWeight:'600' },
 });
 
-// ── Onboarding ────────────────────────────────────────────────
+// ── Onboarding Screen (simple fallback if Onboarding.js fails) ──
 function OnboardingScreen({ onDone }) {
   const { colors } = useTheme();
   const [step, setStep] = React.useState(0);
@@ -151,7 +152,6 @@ const TABS = [
   { label:'Settings', emoji:'⚙️' },
 ];
 
-// Each tab item is its own component so hooks are called at the top level (Rules of Hooks)
 function TabItem({ route, idx, focused, navigation }) {
   const { colors } = useTheme();
   const scale = useSharedValue(1);
@@ -200,12 +200,6 @@ const tabS = StyleSheet.create({
   emoji: { fontSize:22 },
   label: { fontSize:10, letterSpacing:0.1 },
   indicator: { width:16, height:3, borderRadius:2, backgroundColor:'#E50914', marginTop:1 },
-  activeGlow: {
-    shadowColor: '#E50914',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-  },
 });
 
 function GlobalFAB({ currentTab }) {
@@ -248,11 +242,6 @@ function GlobalFAB({ currentTab }) {
           { text: 'Cancel', style: 'cancel' },
         ]);
       }
-    } else if (id === 'quick') {
-      if (bets.length === 0) { Alert.alert('No Bets', 'Add a bet first.'); return; }
-      duplicateBet(bets[0]);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Done ✓', 'Last bet duplicated as Pending.');
     } else if (id === 'stats') {
       var todayCount = bets.filter(function(b) { return new Date(b.date).toDateString() === new Date().toDateString(); });
       Alert.alert(
@@ -299,7 +288,6 @@ function GlobalFAB({ currentTab }) {
   );
 }
 
-// Proper tab bar wrapper — hooks at top level
 function TabBarWithFAB({ state, navigation, descriptors, setCurrentTab }) {
   const currentName = state.routes[state.index].name;
   React.useEffect(() => {
@@ -326,7 +314,6 @@ function MainTabs() {
     </View>
   );
 }
-
 
 // ── Error Boundary ─────────────────────────────────────────────
 class ErrorBoundary extends Component {
@@ -385,27 +372,40 @@ function AppContent() {
         setSavedPin(p);
       } catch (e) {
         console.warn('Bootstrap error:', e);
-        // Still show app even if init fails
         setOnboarded(false);
       }
     }
     bootstrap();
   }, []);
 
+  // Loading state
   if (onboarded === null) return (
     <View style={{ flex:1, backgroundColor: colors.background, alignItems:'center', justifyContent:'center' }}>
       <Text style={{ fontSize:32, marginBottom:12 }}>🎯</Text>
       <Text style={{ color: colors.textSecondary || '#888', fontSize:14 }}>Loading...</Text>
     </View>
   );
+
+  // Onboarding — uses the proper Onboarding.js component
   if (!onboarded) return <Onboarding onComplete={() => setOnboarded(true)} />;
-  if (pinEnabled && savedPin && !pinUnlocked && pinMode !== 'set') return <PinScreen mode="enter" savedPin={savedPin} onSuccess={() => setPinUnlocked(true)} onSetPin={() => {}} />;
-  if (pinMode === 'set') return (
-    <PinScreen mode="set" savedPin="" onSuccess={() => {}} onSetPin={async (pin) => {
-      await setItem(KEYS.PIN, pin); await setItem(KEYS.PIN_ENABLED, true);
-      setSavedPin(pin); setPinEnabled(true); setPinUnlocked(true); setPinMode(null);
-    }} />
-  );
+
+  // PIN lock
+  if (pinEnabled && savedPin && !pinUnlocked && pinMode !== 'set') {
+    return <PinScreen mode="enter" savedPin={savedPin} onSuccess={() => setPinUnlocked(true)} onSetPin={() => {}} />;
+  }
+
+  if (pinMode === 'set') {
+    return (
+      <PinScreen mode="set" savedPin="" onSuccess={() => {}} onSetPin={async (pin) => {
+        await setItem(KEYS.PIN, pin);
+        await setItem(KEYS.PIN_ENABLED, true);
+        setSavedPin(pin);
+        setPinEnabled(true);
+        setPinUnlocked(true);
+        setPinMode(null);
+      }} />
+    );
+  }
 
   return (
     <NavigationContainer>
