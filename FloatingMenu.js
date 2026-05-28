@@ -130,7 +130,7 @@ function FabButton({ isOpen, onPress }) {
 
 // ── Actions config ────────────────────────────────────────────────
 const ALL_ACTIONS = [
-  { id: 'add', icon: '＋', label: 'New Bet', sub: 'Log a bet', bg: '#E50914' },
+  { id: 'add', icon: '＋', label: 'New Bet', sub: 'Log a bet', bg: '#FF4B6A' },
   { id: 'quick', icon: '⚡', label: 'Quick Bet', sub: '2-sec entry', bg: '#7C3AED' },
   { id: 'won', icon: '✓', label: 'Mark Won', sub: 'Pending → Won', bg: '#00C853' },
   { id: 'lost', icon: '✕', label: 'Mark Lost', sub: 'Pending → Lost', bg: '#E53935' },
@@ -220,10 +220,10 @@ const st = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#E50914',
+    backgroundColor: '#FF4B6A',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#E50914',
+    shadowColor: '#FF4B6A',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.45,
     shadowRadius: 16,
@@ -250,7 +250,7 @@ const st = StyleSheet.create({
     marginRight: 2,
   },
   labelPill: {
-    backgroundColor: 'rgba(8,8,8,0.90)',
+    backgroundColor: '#1C1C28',
     borderRadius: 12,
     paddingHorizontal: 13,
     paddingVertical: 8,
@@ -266,7 +266,7 @@ const st = StyleSheet.create({
     width: 0, height: 0,
     borderTopWidth: 5, borderBottomWidth: 5, borderLeftWidth: 6,
     borderTopColor: 'transparent', borderBottomColor: 'transparent',
-    borderLeftColor: 'rgba(8,8,8,0.90)',
+    borderLeftColor: '#1C1C28',
     marginLeft: -1,
   },
   circle: {

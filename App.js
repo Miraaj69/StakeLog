@@ -59,14 +59,14 @@ function PinScreen({ mode, savedPin, onSuccess, onSetPin }) {
 
   return (
     <View style={[pinS.screen, { backgroundColor: colors.background }]}>
-      <View style={[pinS.iconWrap, { backgroundColor: '#FFF0F0' }]}>
+      <View style={[pinS.iconWrap, { backgroundColor: 'rgba(255,75,106,0.1)' }]}>
         <Text style={{ fontSize: 36 }}>🔐</Text>
       </View>
       <Text style={[pinS.title, { color: colors.textPrimary }]}>{mode === 'set' ? 'Create PIN' : 'Enter PIN'}</Text>
       <Text style={[pinS.sub, { color: colors.textTertiary }]}>{mode === 'set' ? 'Choose a 4-digit PIN to secure the app' : 'Enter your PIN to continue'}</Text>
       <Animated.View style={[pinS.dotsRow, shakeStyle]}>
         {[0,1,2,3].map(i => (
-          <View key={i} style={[pinS.dot, { borderColor: digits.length > i ? '#E50914' : colors.border }, digits.length > i && { backgroundColor: '#E50914' }]} />
+          <View key={i} style={[pinS.dot, { borderColor: digits.length > i ? '#FF4B6A' : colors.border }, digits.length > i && { backgroundColor: '#FF4B6A' }]} />
         ))}
       </Animated.View>
       {err ? <Text style={pinS.err}>{err}</Text> : <View style={{ height: 20 }} />}
@@ -74,7 +74,7 @@ function PinScreen({ mode, savedPin, onSuccess, onSetPin }) {
         {keys.map((k, i) => (
           <Pressable key={i} onPress={() => press(k)} disabled={k === ''}
             style={({ pressed }) => [pinS.key, { backgroundColor: k==='' ? 'transparent' : pressed ? '#FFE8E8' : colors.surface, borderColor: colors.border, borderWidth: k==='' ? 0 : 0.5, opacity: k==='' ? 0 : 1 }]}>
-            <Text style={[pinS.keyTxt, { color: k==='⌫' ? '#E50914' : colors.textPrimary }]}>{k}</Text>
+            <Text style={[pinS.keyTxt, { color: k==='⌫' ? '#FF4B6A' : colors.textPrimary }]}>{k}</Text>
           </Pressable>
         ))}
       </View>
@@ -88,7 +88,7 @@ const pinS = StyleSheet.create({
   sub: { fontSize:14, textAlign:'center', marginBottom:44, lineHeight:21 },
   dotsRow: { flexDirection:'row', gap:16, marginBottom:8 },
   dot: { width:14, height:14, borderRadius:7, borderWidth:2 },
-  err: { fontSize:13, fontWeight:'600', color:'#D93025', height:20 },
+  err: { fontSize:13, fontWeight:'600', color:'#FF4444', height:20 },
   keypad: { flexDirection:'row', flexWrap:'wrap', width:260, gap:12, marginTop:28, justifyContent:'center' },
   key: { width:76, height:76, borderRadius:38, alignItems:'center', justifyContent:'center' },
   keyTxt: { fontSize:22, fontWeight:'600' },
@@ -108,7 +108,7 @@ function OnboardingScreen({ onDone }) {
   return (
     <View style={[onbS.screen, { backgroundColor: colors.background }]}>
       <Animated.View entering={FadeIn.duration(280)} key={step} style={onbS.content}>
-        <View style={[onbS.iconWrap, { backgroundColor:'#FFF0F0' }]}>
+        <View style={[onbS.iconWrap, { backgroundColor:'rgba(255,75,106,0.1)' }]}>
           <Text style={onbS.icon}>{s.icon}</Text>
         </View>
         <Text style={[onbS.title, { color: colors.textPrimary }]}>{s.title}</Text>
@@ -116,7 +116,7 @@ function OnboardingScreen({ onDone }) {
       </Animated.View>
       <View style={onbS.bottom}>
         <View style={onbS.dotsRow}>
-          {steps.map((_,i) => <View key={i} style={[onbS.dot, { backgroundColor: i===step ? '#E50914' : colors.border, width: i===step ? 22 : 7 }]} />)}
+          {steps.map((_,i) => <View key={i} style={[onbS.dot, { backgroundColor: i===step ? '#FF4B6A' : colors.border, width: i===step ? 22 : 7 }]} />)}
         </View>
         <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); step < steps.length-1 ? setStep(s=>s+1) : onDone(); }}
           style={onbS.nextBtn}>
@@ -137,7 +137,7 @@ const onbS = StyleSheet.create({
   bottom: { gap:14 },
   dotsRow: { flexDirection:'row', gap:7, justifyContent:'center', marginBottom:4 },
   dot: { height:7, borderRadius:4 },
-  nextBtn: { backgroundColor:'#E50914', borderRadius:999, paddingVertical:16, alignItems:'center', shadowColor:'#E50914', shadowOffset:{width:0,height:4}, shadowOpacity:0.3, shadowRadius:10, elevation:5 },
+  nextBtn: { backgroundColor:'#FF4B6A', borderRadius:999, paddingVertical:16, alignItems:'center', shadowColor:'#FF4B6A', shadowOffset:{width:0,height:4}, shadowOpacity:0.3, shadowRadius:10, elevation:5 },
   nextTxt: { color:'#fff', fontSize:16, fontWeight:'700' },
   backBtn: { alignItems:'center', paddingVertical:10 },
   backTxt: { fontSize:14, fontWeight:'500' },
@@ -145,33 +145,65 @@ const onbS = StyleSheet.create({
 
 // ── Premium Tab Bar ───────────────────────────────────────────
 const TABS = [
-  { label:'Home',     emoji:'🏠' },
-  { label:'Bets',     emoji:'📋' },
-  { label:'Stats',    emoji:'📊' },
-  { label:'Bankroll', emoji:'💰' },
-  { label:'Settings', emoji:'⚙️' },
+  { label:'Home',     emoji:'⬟' },
+  { label:'Bets',     emoji:'◈' },
+  { label:'Stats',    emoji:'◉' },
+  { label:'Bankroll', emoji:'◆' },
+  { label:'Settings', emoji:'✦' },
 ];
 
 function TabItem({ route, idx, focused, navigation }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const scale = useSharedValue(1);
+  const pillW = useSharedValue(focused ? 1 : 0);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const pillStyle = useAnimatedStyle(() => ({
+    width: pillW.value * 56,
+    opacity: pillW.value,
+  }));
+
+  React.useEffect(() => {
+    pillW.value = withSpring(focused ? 1 : 0, { damping: 22, stiffness: 300 });
+  }, [focused]);
+
   const onPress = () => {
-    scale.value = withSpring(0.82, { damping: 12 }, () => { scale.value = withSpring(1, { damping: 14 }); });
+    scale.value = withSpring(0.85, { damping: 12 }, () => {
+      scale.value = withSpring(1, { damping: 14 });
+    });
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!focused) navigation.navigate(route.name);
   };
+
   return (
     <Pressable key={route.name} onPress={onPress} style={tabS.tab}>
       <Animated.View style={[tabS.inner, animStyle]}>
-        <Text style={[tabS.emoji, { opacity: focused ? 1 : 0.55 }]}>{TABS[idx].emoji}</Text>
+        {/* M3 pill indicator */}
+        <Animated.View style={[
+          tabS.pill,
+          { backgroundColor: 'rgba(255,75,106,0.12)' },
+          pillStyle,
+        ]}>
+          <Text style={[
+            tabS.emoji,
+            {
+              opacity: focused ? 1 : 0.42,
+              filter: focused ? undefined : undefined,
+            },
+          ]}>
+            {TABS[idx].emoji}
+          </Text>
+        </Animated.View>
+        {!focused && (
+          <Text style={[tabS.emoji, { opacity: 0.42, position: 'absolute' }]}>
+            {TABS[idx].emoji}
+          </Text>
+        )}
         <Text style={[tabS.label, {
-          color: focused ? '#E50914' : '#9CA3AF',
-          fontWeight: focused ? '700' : '500',
+          color:      focused ? '#FF4B6A' : colors.textTertiary,
+          fontWeight: focused ? '700'     : '500',
         }]}>
           {TABS[idx].label}
         </Text>
-        {focused && <View style={tabS.indicator} />}
       </Animated.View>
     </Pressable>
   );
@@ -194,12 +226,21 @@ function CustomTabBar({ state, navigation }) {
   );
 }
 const tabS = StyleSheet.create({
-  bar: { flexDirection:'row', paddingTop:8, paddingBottom: Platform.OS==='ios' ? 24 : 10, borderTopWidth:0.5 },
-  tab: { flex:1, alignItems:'center' },
-  inner: { alignItems:'center', gap:2 },
-  emoji: { fontSize:22 },
-  label: { fontSize:10, letterSpacing:0.1 },
-  indicator: { width:16, height:3, borderRadius:2, backgroundColor:'#E50914', marginTop:1 },
+  bar: {
+    flexDirection: 'row',
+    paddingTop: 6,
+    paddingBottom: Platform.OS === 'ios' ? 26 : 10,
+    borderTopWidth: 0.5,
+  },
+  tab:   { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  inner: { alignItems: 'center', gap: 3, position: 'relative' },
+  pill:  {
+    height: 32, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  emoji: { fontSize: 19 },
+  label: { fontSize: 10, letterSpacing: 0.2 },
 });
 
 function GlobalFAB({ currentTab }) {
@@ -330,7 +371,7 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <View style={{ flex:1, backgroundColor:'#0f0f23', alignItems:'center', justifyContent:'center', padding:32 }}>
+        <View style={{ flex:1, backgroundColor:'#0C0C12', alignItems:'center', justifyContent:'center', padding:32 }}>
           <Text style={{ fontSize:40, marginBottom:16 }}>⚠️</Text>
           <Text style={{ color:'#fff', fontSize:20, fontWeight:'700', textAlign:'center', marginBottom:12 }}>Something went wrong</Text>
           <Text style={{ color:'rgba(255,255,255,0.5)', fontSize:14, textAlign:'center', marginBottom:32 }}>
@@ -338,7 +379,7 @@ class ErrorBoundary extends Component {
           </Text>
           <Pressable
             onPress={() => this.setState({ hasError: false, error: null })}
-            style={{ backgroundColor:'#E50914', paddingHorizontal:28, paddingVertical:14, borderRadius:999 }}>
+            style={{ backgroundColor:'#FF4B6A', paddingHorizontal:28, paddingVertical:14, borderRadius:999 }}>
             <Text style={{ color:'#fff', fontWeight:'700', fontSize:15 }}>Try Again</Text>
           </Pressable>
         </View>

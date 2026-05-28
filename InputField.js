@@ -1,106 +1,111 @@
-// components/InputField.js
+// InputField.js — Material 3 Expressive · Tonal input surface
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
+import {
+  View, Text, TextInput, StyleSheet, Pressable,
+} from 'react-native';
+import Animated, {
+  useSharedValue, useAnimatedStyle, withSpring, withTiming,
+} from 'react-native-reanimated';
 import { useTheme } from './useTheme';
-import { Spacing, Radius, Typography } from './theme';
 
 export default function InputField({
-  label, value, onChangeText, placeholder, keyboardType = 'default',
-  multiline = false, options, error, hint, rightIcon, onRightIconPress,
+  label, value, onChangeText, placeholder,
+  keyboardType = 'default', multiline = false,
+  options, error, hint, rightIcon, onRightIconPress,
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [focused, setFocused] = useState(false);
-  const s = styles(colors, focused, !!error);
 
+  // Option picker mode
   if (options) {
     return (
       <View style={s.wrapper}>
-        <Text style={s.label}>{label}</Text>
+        {label ? <Text style={[s.label, { color: colors.textTertiary }]}>{label}</Text> : null}
         <View style={s.pickerRow}>
-          {options.map(opt => (
-            <Pressable
-              key={opt}
-              onPress={() => onChangeText(opt)}
-              style={[s.optionChip, value === opt && s.optionChipActive]}
-            >
-              <Text style={[s.optionText, value === opt && s.optionTextActive]} numberOfLines={1}>
-                {opt}
-              </Text>
-            </Pressable>
-          ))}
+          {options.map(opt => {
+            const active = value === opt;
+            return (
+              <Pressable
+                key={opt}
+                onPress={() => onChangeText(opt)}
+                style={[s.chip, {
+                  backgroundColor: active
+                    ? 'rgba(255,75,106,0.1)'
+                    : isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                  borderColor: active
+                    ? 'rgba(255,75,106,0.3)'
+                    : colors.border,
+                }]}
+              >
+                <Text style={[s.chipTxt, {
+                  color:      active ? '#FF4B6A' : colors.textSecondary,
+                  fontWeight: active ? '800' : '500',
+                }]}>{opt}</Text>
+              </Pressable>
+            );
+          })}
         </View>
-        {error && <Text style={s.errorText}>{error}</Text>}
+        {error ? <Text style={[s.error, { color: '#FF4444' }]}>{error}</Text> : null}
+        {hint  ? <Text style={[s.hint,  { color: colors.textTertiary }]}>{hint}</Text> : null}
       </View>
     );
   }
 
+  // Text input mode
   return (
     <View style={s.wrapper}>
-      <Text style={s.label}>{label}</Text>
-      <View style={[s.inputContainer, focused && s.inputFocused, !!error && s.inputError]}>
+      {label ? <Text style={[s.label, { color: focused ? '#FF4B6A' : colors.textTertiary }]}>{label}</Text> : null}
+      <View style={[s.inputWrap, {
+        backgroundColor: isDark
+          ? 'rgba(255,255,255,0.05)'
+          : 'rgba(0,0,0,0.03)',
+        borderColor:   error ? '#FF4444' : focused ? '#FF4B6A' : colors.border,
+        borderWidth:   focused || error ? 1.5 : 1,
+        shadowColor:   focused ? '#FF4B6A' : 'transparent',
+        shadowOpacity: focused ? 0.15 : 0,
+        shadowRadius:  6,
+        shadowOffset:  { width: 0, height: 0 },
+      }]}>
         <TextInput
-          style={[s.input, multiline && s.inputMultiline]}
+          style={[s.input, {
+            color:            colors.textPrimary,
+            minHeight:        multiline ? 80 : undefined,
+            textAlignVertical:multiline ? 'top' : undefined,
+          }]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={colors.textTertiary}
           keyboardType={keyboardType}
           multiline={multiline}
-          numberOfLines={multiline ? 3 : 1}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          autoCorrect={false}
         />
         {rightIcon && (
-          <Pressable onPress={onRightIconPress} style={s.rightIcon}>
-            <Text style={{ fontSize: 16 }}>{rightIcon}</Text>
+          <Pressable onPress={onRightIconPress} hitSlop={8} style={s.rightIcon}>
+            <Text style={{ fontSize: 18 }}>{rightIcon}</Text>
           </Pressable>
         )}
       </View>
-      {error ? <Text style={s.errorText}>{error}</Text> : hint ? <Text style={s.hintText}>{hint}</Text> : null}
+      {error ? <Text style={[s.error, { color: '#FF4444' }]}>{error}</Text> : null}
+      {hint  ? <Text style={[s.hint,  { color: colors.textTertiary }]}>{hint}</Text> : null}
     </View>
   );
 }
 
-const styles = (colors, focused, hasError) => StyleSheet.create({
-  wrapper: { marginBottom: Spacing.sm },
-  label: {
-    ...Typography.label,
-    color: focused ? colors.primary : colors.textSecondary,
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surfaceVariant,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    borderColor: hasError ? colors.loss : focused ? colors.primary : colors.border,
-    paddingHorizontal: Spacing.md,
-    minHeight: 52,
-  },
-  inputFocused: { borderColor: colors.primary, backgroundColor: colors.surface },
-  inputError: { borderColor: colors.loss },
-  input: {
-    flex: 1,
-    ...Typography.body,
-    color: colors.textPrimary,
-    paddingVertical: Spacing.sm,
-  },
-  inputMultiline: { minHeight: 80, textAlignVertical: 'top', paddingTop: Spacing.sm },
-  rightIcon: { padding: Spacing.xs },
-  errorText: { ...Typography.caption, color: colors.loss, marginTop: 4, marginLeft: 4 },
-  hintText: { ...Typography.caption, color: colors.textTertiary, marginTop: 4, marginLeft: 4 },
-  pickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  optionChip: {
-    paddingHorizontal: 12, paddingVertical: 7,
-    borderRadius: Radius.full, borderWidth: 1.5,
-    borderColor: colors.border, backgroundColor: colors.surfaceVariant,
-    marginBottom: 4,
-  },
-  optionChipActive: { borderColor: colors.primary, backgroundColor: colors.primaryContainer },
-  optionText: { ...Typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
-  optionTextActive: { color: colors.primary, fontWeight: '700' },
+const s = StyleSheet.create({
+  wrapper:   { marginBottom: 14 },
+  label:     { fontSize: 10, fontWeight: '700', textTransform: 'uppercase',
+               letterSpacing: 1.1, marginBottom: 8 },
+  inputWrap: { flexDirection: 'row', alignItems: 'center',
+               borderRadius: 16, paddingHorizontal: 14 },
+  input:     { flex: 1, fontSize: 15, fontWeight: '500',
+               paddingVertical: 13 },
+  rightIcon: { paddingLeft: 8 },
+  error:     { fontSize: 11, fontWeight: '600', marginTop: 5 },
+  hint:      { fontSize: 11, marginTop: 5, lineHeight: 16 },
+  pickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip:      { paddingHorizontal: 14, paddingVertical: 8,
+               borderRadius: 999, borderWidth: 1 },
+  chipTxt:   { fontSize: 13 },
 });

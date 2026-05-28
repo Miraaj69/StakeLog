@@ -1,79 +1,82 @@
-// components/StatsCard.js
+// StatsCard.js — M3 Expressive · Tonal surface · Spring press
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
-function LinearGradient(props) {
-  try { return <ExpoLinearGradient {...props} />; }
-  catch(e) { return <View style={[props.style, { backgroundColor: (props.colors && props.colors[0]) || 'transparent' }]}>{props.children}</View>; }
-}
+import Animated, {
+  useSharedValue, useAnimatedStyle, withSpring,
+} from 'react-native-reanimated';
 import { useTheme } from './useTheme';
-import { Spacing, Radius, Typography, Shadows } from './theme';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-export default function StatsCard({ icon, label, value, subValue, color, bgColor, onPress, gradient, size = 'md' }) {
-  const { colors } = useTheme();
+export default function StatsCard({
+  icon, label, value, subValue, color,
+  bgColor, onPress, size = 'md',
+}) {
+  const { colors, isDark } = useTheme();
   const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  const handlePressIn = () => { scale.value = withSpring(0.96, { damping: 15 }); };
-  const handlePressOut = () => { scale.value = withSpring(1, { damping: 15 }); };
-
-  const s = styles(colors, size);
-
-  const content = (
-    <View style={s.content}>
-      {icon && <Text style={s.icon}>{icon}</Text>}
-      <Text style={[s.value, { color: color || colors.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
-        {value}
-      </Text>
-      <Text style={s.label}>{label}</Text>
-      {subValue && <Text style={[s.subValue, { color: color || colors.textTertiary }]}>{subValue}</Text>}
-    </View>
-  );
-
-  const card = gradient ? (
-    <LinearGradient colors={gradient} style={s.card} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-      {content}
-    </LinearGradient>
-  ) : (
-    <View style={[s.card, { backgroundColor: bgColor || colors.surfaceVariant }]}>
-      {content}
-    </View>
-  );
-
-  if (!onPress) return <Animated.View style={[animStyle, s.wrapper]}>{card}</Animated.View>;
+  const isLg = size === 'lg';
 
   return (
-    <AnimatedPressable style={[animStyle, s.wrapper]} onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut}>
-      {card}
-    </AnimatedPressable>
+    <Animated.View style={animStyle}>
+      <Pressable
+        onPressIn={() => {
+          if (onPress) scale.value = withSpring(0.95, { damping: 20, stiffness: 400 });
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1, { damping: 20, stiffness: 400 });
+        }}
+        onPress={onPress}
+        style={[
+          sc.card,
+          {
+            backgroundColor: bgColor
+              || (isDark ? colors.surfaceVariant : '#FFFFFF'),
+            borderColor: colors.border,
+            paddingVertical:   isLg ? 18 : 14,
+            paddingHorizontal: isLg ? 16 : 12,
+          },
+        ]}
+      >
+        {icon ? (
+          <Text style={[sc.icon, { fontSize: isLg ? 22 : 18 }]}>{icon}</Text>
+        ) : null}
+
+        <Text style={[
+          sc.value,
+          {
+            color:    color || colors.textPrimary,
+            fontSize: isLg ? 26 : 18,
+          },
+        ]} numberOfLines={1} adjustsFontSizeToFit>
+          {value}
+        </Text>
+
+        <Text style={[sc.label, { color: colors.textTertiary }]} numberOfLines={1}>
+          {label}
+        </Text>
+
+        {subValue ? (
+          <Text style={[sc.sub, { color: color || colors.textSecondary }]}>
+            {subValue}
+          </Text>
+        ) : null}
+      </Pressable>
+    </Animated.View>
   );
 }
 
-const styles = (colors, size) => StyleSheet.create({
-  wrapper: { flex: 1 },
+const sc = StyleSheet.create({
   card: {
-    borderRadius: size === 'lg' ? Radius.xxl : Radius.xl,
-    padding: size === 'lg' ? Spacing.lg : Spacing.md,
-    minHeight: size === 'lg' ? 120 : 90,
-    justifyContent: 'space-between',
-    ...Shadows.md,
+    flex: 1, borderRadius: 20, borderWidth: 1,
+    alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
-  content: { flex: 1, justifyContent: 'space-between' },
-  icon: { fontSize: size === 'lg' ? 28 : 22, marginBottom: 6 },
-  value: {
-    fontSize: size === 'lg' ? 26 : 20,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-    marginBottom: 2,
-  },
-  label: {
-    ...Typography.micro,
-    color: colors.textTertiary,
-    textTransform: 'uppercase',
-  },
-  subValue: { ...Typography.caption, marginTop: 2 },
+  icon:  { marginBottom: 6 },
+  value: { fontWeight: '800', letterSpacing: -0.5, textAlign: 'center' },
+  label: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase',
+           letterSpacing: 0.8, marginTop: 4, textAlign: 'center' },
+  sub:   { fontSize: 11, fontWeight: '600', marginTop: 3 },
 });

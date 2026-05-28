@@ -13,7 +13,7 @@ function LinearGradient({ colors: gColors, style, start, end, children }) {
   try {
     return <ExpoLinearGradient colors={gColors} style={style} start={start} end={end}>{children}</ExpoLinearGradient>;
   } catch(e) {
-    var bg = (gColors && gColors[0]) || '#0f0f23';
+    var bg = (gColors && gColors[0]) || '#0C0C12';
     return <View style={[style, { backgroundColor: bg }]}>{children}</View>;
   }
 }
@@ -311,11 +311,11 @@ var sc = StyleSheet.create({
 
 // ── GRADIENT BACKGROUNDS per screen ──────────────────────────────
 var GRADIENTS = [
-  ['#0f0f23', '#1a1a40', '#0d2318'],  // Screen 1 — dark blue/green
-  ['#0f0f23', '#1a1040', '#0a0a1f'],  // Screen 2 — deep purple
-  ['#0d1a0f', '#0f2318', '#0a0f1a'],  // Screen 3 — forest/teal
-  ['#1a0f23', '#0f0f23', '#0a1a2f'],  // Screen 4 — purple/blue
-  ['#0a1f0a', '#0f230f', '#0d1a1a'],  // Screen 5 — deep green
+  ['#0C0C12', '#13131C', '#0C0C12'],  // Screen 1 — M3 dark surface
+  ['#0C0C12', '#161626', '#0C0C12'],  // Screen 2 — M3 deep slate
+  ['#0C0C12', '#0F1A0F', '#0C0C12'],  // Screen 3 — M3 profit tonal
+  ['#0C0C12', '#1A0C10', '#0C0C12'],  // Screen 4 — M3 primary tonal
+  ['#0C0C12', '#131328', '#0C0C12'],  // Screen 5 — M3 neutral
 ];
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────
